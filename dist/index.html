@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>My Room in 3D - Modern Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-DHC8_jsq.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-B_UATqtt.css">
+  </head>
+  <body>
+    <!-- 3D Canvas -->
+    <canvas id="webgl" class="webgl"></canvas>
+
+    <!-- Top Left Performance HUD -->
+    <div id="stats-container" class="stats-hud"></div>
+
+    <!-- Minimizable Quick Atmosphere & Camera Bar -->
+    <div class="quick-bar" id="quick-bar">
+      <div class="quick-bar-top" id="quick-bar-toggle" title="Click to minimize/expand">
+        <div class="header-left">
+          <span class="header-icon">✨</span>
+          <span class="header-title">Atmosphere & Views</span>
+        </div>
+        <button class="collapse-btn" id="btn-collapse" aria-label="Toggle Panel">▾</button>
+      </div>
+
+      <div class="quick-bar-content" id="quick-bar-content">
+        <div class="quick-header">Lighting Atmosphere</div>
+        <div class="preset-pill-group">
+          <button class="preset-pill active" data-preset="Cyberpunk Night">🌌 Cyberpunk</button>
+          <button class="preset-pill" data-preset="Sunset Studio">🌆 Sunset</button>
+          <button class="preset-pill" data-preset="Clean Daylight">☀️ Daylight</button>
+          <button class="preset-pill" data-preset="Cozy Lo-Fi">🕯️ Cozy</button>
+        </div>
+
+        <div class="quick-header" style="margin-top: 10px;">Camera View</div>
+        <div class="preset-pill-group">
+          <button class="cam-pill active" data-cam="Isometric">📐 Room</button>
+          <button class="cam-pill" data-cam="Desk Setup">🖥️ Desk</button>
+          <button class="cam-pill" data-cam="Bed Corner">🛏️ Bed</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hotspot Tooltip -->
+    <div id="tooltip" class="interactive-tooltip">
+      <span id="tooltip-text">Click to interact</span>
+    </div>
+
+    <!-- Interactive Object Modal -->
+    <div id="modal-backdrop" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="window-dots">
+            <span class="dot dot-red" id="modal-close-btn"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+          <div class="modal-title" id="modal-title">Workstation Terminal</div>
+          <button class="modal-close" id="modal-close-x">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Left Controls Guide -->
+    <div class="controls-guide">
+      <div class="guide-item"><span>Left Click + Drag</span> • Orbit</div>
+      <div class="guide-item"><span>Right Click + Drag</span> • Pan</div>
+      <div class="guide-item"><span>Scroll</span> • Zoom</div>
+      <div class="guide-item highlight"><span>Click Items</span> • Hotspots</div>
+    </div>
+
+    <!-- Bottom Right Credits Footer -->
+    <div class="footer-credit">
+      <span>My Room in 3D by <strong class="author-name">FiveM Player</strong></span>
+      <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="source-link">(Source code)</a>
+    </div>
+
+  </body>
+</html>
