@@ -101,35 +101,71 @@ export function createLighting(scene) {
     updateLighting();
   }
 
+  function syncWithWeather(weather) {
+    state.preset = 'Weather Synced';
+    if (weather.isDay) {
+      if (weather.condition === 'clear') {
+        state.uNightMix = 0.05;
+        state.pcColor = '#38bdf8';
+        state.deskColor = '#ffffff';
+        state.screenColor = '#60a5fa';
+        state.uLightPcStrength = 1.2;
+        state.uLightDeskStrength = 1.5;
+      } else { // cloudy / rain / snow
+        state.uNightMix = 0.35;
+        state.pcColor = '#60a5fa';
+        state.deskColor = '#f8fafc';
+        state.screenColor = '#94a3b8';
+        state.uLightPcStrength = 1.8;
+        state.uLightDeskStrength = 2.0;
+      }
+    } else {
+      // Night time
+      state.uNightMix = 0.92;
+      state.pcColor = '#0082ff';
+      state.deskColor = '#ffaa44';
+      state.screenColor = '#818cf8';
+      state.uLightPcStrength = 2.8;
+      state.uLightDeskStrength = 2.8;
+    }
+    updateLighting();
+  }
+
   function updateLighting() {
-    const night = state.uNightMix;
+    const ease = 0.12;
+    const t = 1.0 - state.uNightMix;
+    const baseR = 0.05, baseG = 0.07, baseB = 0.12;
+    const dayR = 1.0, dayG = 1.0, dayB = 1.0;
 
-    // Ambient
-    const dayAmb = new THREE.Color('#ffffff');
-    const nightAmb = new THREE.Color('#0a0e1a');
-    ambientLight.color.copy(dayAmb).lerp(nightAmb, night);
-    ambientLight.intensity = THREE.MathUtils.lerp(1.3, 0.4, night);
+    ambientLight.color.setRGB(
+      baseR + (dayR - baseR) * t * 0.9,
+      baseG + (dayG - baseG) * t * 0.9,
+      baseB + (dayB - baseB) * t * 0.9
+    );
 
-    // Sun / Moon
-    const daySun = new THREE.Color('#fff7ed');
-    const nightSun = new THREE.Color('#38bdf8');
-    sunLight.color.copy(daySun).lerp(nightSun, night);
-    sunLight.intensity = THREE.MathUtils.lerp(state.sunStrength, 0.25, night);
+    const sunTargetIntensity = 0.1 + state.sunStrength * t * 1.5;
+    sunLight.intensity += (sunTargetIntensity - sunLight.intensity) * ease;
+    sunLight.color.setRGB(
+      0.2 + 0.8 * t,
+      0.3 + 0.7 * t,
+      0.7 + 0.3 * t
+    );
 
-    // Rim light
-    rimLight.intensity = THREE.MathUtils.lerp(0.5, 0.95, night);
+    rimLight.intensity += ((0.3 + 0.45 * t) - rimLight.intensity) * ease;
+    windowLight.intensity += ((0.4 + 1.0 * t) - windowLight.intensity) * ease;
 
-    // Desk Light
-    deskLight.color.set(state.deskColor);
-    deskLight.intensity = state.uLightDeskStrength * (0.4 + night * 0.9);
+    const tmpCol = new THREE.Color();
+    tmpCol.set(state.pcColor);
+    pcLight.color.lerp(tmpCol, ease);
+    pcLight.intensity += (state.uLightPcStrength - pcLight.intensity) * ease;
 
-    // PC Light
-    pcLight.color.set(state.pcColor);
-    pcLight.intensity = state.uLightPcStrength * (0.5 + night * 0.95);
+    tmpCol.set(state.deskColor);
+    deskLight.color.lerp(tmpCol, ease);
+    deskLight.intensity += (state.uLightDeskStrength - deskLight.intensity) * ease;
 
-    // Screen Light
-    screenLight.color.set(state.screenColor);
-    screenLight.intensity = state.uLightScreenStrength * (0.4 + night * 0.9);
+    tmpCol.set(state.screenColor);
+    screenLight.color.lerp(tmpCol, ease);
+    screenLight.intensity += (state.uLightScreenStrength - screenLight.intensity) * ease;
   }
 
   updateLighting();
@@ -138,6 +174,7 @@ export function createLighting(scene) {
     group: lightsGroup,
     state,
     applyPreset,
+    syncWithWeather,
     ambientLight,
     sunLight,
     rimLight,

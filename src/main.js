@@ -14,6 +14,7 @@ import { createLighting } from './components/Lighting.js';
 import { createGUI } from './components/GUI.js';
 import { setupInteractions } from './components/Interactions.js';
 import { soundEngine } from './utils/soundEngine.js';
+import { WeatherSync } from './utils/weatherSync.js';
 
 // 1. Scene Setup
 const canvas = document.querySelector('#webgl');
@@ -82,7 +83,7 @@ if (statsContainer) {
 
 // 7. Build Modernized 3D Room Environment
 const room = createRoom();
-scene.add(room);
+scene.add(room.group);
 
 const deskSetup = createDeskSetup();
 scene.add(deskSetup.group);
@@ -95,6 +96,21 @@ const furniture = createFurniture();
 scene.add(furniture.group);
 
 const lighting = createLighting(scene);
+
+// Real-Time Weather & Time Sync
+const weatherSync = new WeatherSync();
+weatherSync.onUpdate((weatherData) => {
+  lighting.syncWithWeather(weatherData);
+  if (room && room.animatedWindow) {
+    room.animatedWindow.setWeather(weatherData);
+  }
+  if (weatherData.condition === 'rain' || weatherData.condition === 'snow') {
+    soundEngine.setRainState(true);
+  } else {
+    soundEngine.setRainState(false);
+  }
+});
+weatherSync.init();
 
 // 8. GUI & Raycasting Interactions
 let interactionsHandler = null;
@@ -186,6 +202,11 @@ function animate() {
   // Update animated monitor screens
   if (deskSetup && deskSetup.screenManager) {
     deskSetup.screenManager.update(delta);
+  }
+
+  // Update animated window (weather)
+  if (room && room.animatedWindow) {
+    room.animatedWindow.update(delta);
   }
 
   // Speaker audio LED visualizer ring pulse

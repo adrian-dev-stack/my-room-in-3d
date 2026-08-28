@@ -5,6 +5,7 @@ import {
   createWoodFloorBumpMap,
   createZebraBlindsTexture
 } from '../utils/textures.js';
+import { AnimatedWindow } from '../utils/animatedWindow.js';
 
 export function createRoom() {
   const roomGroup = new THREE.Group();
@@ -13,6 +14,9 @@ export function createRoom() {
   const ROOM_SIZE = 7.2;
   const WALL_HEIGHT = 4.2;
   const WALL_THICKNESS = 0.2;
+
+  // Animated Window for weather sync
+  const animatedWindow = new AnimatedWindow();
 
   // Authentic Materials from your photos
   const woodFloorTexture = createWoodFloorTexture();
@@ -135,9 +139,8 @@ export function createRoom() {
   frameOuter.castShadow = true;
   windowGroup.add(frameOuter);
 
-  const zebraTexture = createZebraBlindsTexture();
   const blindsMaterial = new THREE.MeshStandardMaterial({
-    map: zebraTexture,
+    map: animatedWindow.texture,
     roughness: 0.7,
     metalness: 0.05
   });
@@ -156,5 +159,8 @@ export function createRoom() {
   windowGroup.rotation.y = Math.PI;
   roomGroup.add(windowGroup);
 
-  return roomGroup;
+  return {
+    group: roomGroup,
+    animatedWindow
+  };
 }

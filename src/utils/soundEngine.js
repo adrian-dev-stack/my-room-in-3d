@@ -27,6 +27,12 @@ class SoundEngine {
     this.currentChannel = 0;
     this.musicTimer = null;
 
+    // Weather audio
+    this.isRaining = false;
+    this.rainGain = null;
+    this.rainFilter = null;
+    this.rainNoiseSource = null;
+
     this.channels = [
       {
         name: 'Lo-Fi Chill Beats',
@@ -105,6 +111,7 @@ class SoundEngine {
 
     // Initialize procedural ambient fan chain
     this._initFanAmbiance();
+    this._initRainAmbiance();
   }
 
   /**
@@ -162,6 +169,57 @@ class SoundEngine {
 
     this.fanNoiseSource.start();
     this.fanOsc.start();
+  }
+
+  /**
+   * Setup white noise for rain against the window
+   */
+  _initRainAmbiance() {
+    if (!this.ctx) return;
+
+    // White noise buffer
+    const bufferSize = this.ctx.sampleRate * 2;
+    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = (Math.random() * 2 - 1) * 0.15;
+    }
+
+    this.rainNoiseSource = this.ctx.createBufferSource();
+    this.rainNoiseSource.buffer = noiseBuffer;
+    this.rainNoiseSource.loop = true;
+
+    // Filter to simulate rain hitting glass (muffled high-pass/low-pass)
+    this.rainFilter = this.ctx.createBiquadFilter();
+    this.rainFilter.type = 'bandpass';
+    this.rainFilter.frequency.setValueAtTime(1200, this.ctx.currentTime);
+    this.rainFilter.Q.setValueAtTime(0.5, this.ctx.currentTime);
+
+    this.rainGain = this.ctx.createGain();
+    this.rainGain.gain.setValueAtTime(0, this.ctx.currentTime);
+
+    this.rainNoiseSource.connect(this.rainFilter);
+    this.rainFilter.connect(this.rainGain);
+    this.rainGain.connect(this.masterGain);
+
+    this.rainNoiseSource.start();
+  }
+
+  setRainState(isRaining) {
+    this.init();
+    if (!this.rainGain || !this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    if (isRaining && !this.isMuted) {
+      this.rainGain.gain.cancelScheduledValues(t);
+      this.rainGain.gain.linearRampToValueAtTime(0.12, t + 2.0);
+      this.isRaining = true;
+    } else {
+      this.rainGain.gain.cancelScheduledValues(t);
+      this.rainGain.gain.linearRampToValueAtTime(0.0001, t + 2.0);
+      this.isRaining = false;
+    }
   }
 
   /**
