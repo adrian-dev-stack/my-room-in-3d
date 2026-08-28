@@ -74,7 +74,7 @@ export function createDeskSetup() {
   // 2. Black Desk Mat / Mousepad (Photo 3)
   const matGeo = new RoundedBoxGeometry(1.6, 0.01, 0.75, 4, 0.01);
   const deskMat = new THREE.Mesh(matGeo, deskMatMat);
-  deskMat.position.set(-0.15, 1.15 + DESK_H / 2 + 0.006, 0.05);
+  deskMat.position.set(0.1, 1.15 + DESK_H / 2 + 0.006, 0.05);
   deskMat.receiveShadow = true;
   deskGroup.add(deskMat);
 
@@ -127,7 +127,7 @@ export function createDeskSetup() {
   armBase.position.set(0, -0.66, -0.12);
   mainMonGroup.add(armBase);
 
-  mainMonGroup.position.set(-0.15, 1.85, -0.2);
+  mainMonGroup.position.set(0.1, 1.85, -0.2);
   deskGroup.add(mainMonGroup);
 
   // 4. Vertical Secondary Monitor (Left - Discord Chat - Photo 3)
@@ -158,11 +158,10 @@ export function createDeskSetup() {
   vertArmBase.position.set(0, -0.78, -0.1);
   vertMonGroup.add(vertArmBase);
 
-  vertMonGroup.position.set(-0.95, 1.85, -0.12);
+  vertMonGroup.position.set(-1.0, 1.85, -0.12);
   vertMonGroup.rotation.y = 0.24;
   deskGroup.add(vertMonGroup);
 
-  // 5. Backlit Mechanical Keyboard (Photo 3)
   // 5. Backlit Mechanical Keyboard (Photo 3)
   const kbGroup = new THREE.Group();
   kbGroup.name = 'MechanicalKeyboard';
@@ -195,7 +194,7 @@ export function createDeskSetup() {
     }
   }
 
-  kbGroup.position.set(-0.18, 1.15 + DESK_H / 2 + 0.02, 0.08);
+  kbGroup.position.set(0.07, 1.15 + DESK_H / 2 + 0.02, 0.08);
   deskGroup.add(kbGroup);
 
   // 6. Gaming Mouse (Photo 3)
@@ -207,7 +206,7 @@ export function createDeskSetup() {
   mouseMesh.castShadow = true;
   mouseGroup.add(mouseMesh);
 
-  mouseGroup.position.set(0.28, 1.15 + DESK_H / 2 + 0.02, 0.08);
+  mouseGroup.position.set(0.53, 1.15 + DESK_H / 2 + 0.02, 0.08);
   deskGroup.add(mouseGroup);
 
   // 7. White Gaming Headset (Resting on Right Side of Desk - Photo 3)

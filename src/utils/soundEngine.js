@@ -100,7 +100,7 @@ class SoundEngine {
 
     // Music Sub-gain
     this.musicGain = this.ctx.createGain();
-    this.musicGain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+    this.musicGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
     this.musicGain.connect(this.masterGain);
 
     // Initialize procedural ambient fan chain
@@ -173,7 +173,7 @@ class SoundEngine {
 
     const t = this.ctx.currentTime;
     if (isRunning && !this.isMuted) {
-      const targetGain = 0.14 * speed;
+      const targetGain = 0.04 * speed;
       this.fanGain.gain.cancelScheduledValues(t);
       this.fanGain.gain.linearRampToValueAtTime(targetGain, t + 0.6);
 
@@ -377,8 +377,8 @@ class SoundEngine {
       // Amplitude Envelope
       const gain = this.ctx.createGain();
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(0.09 / chord.length, t + 0.8);
-      gain.gain.exponentialRampToValueAtTime(0.03 / chord.length, t + duration * 0.7);
+      gain.gain.linearRampToValueAtTime(0.8 / chord.length, t + 0.8);
+      gain.gain.exponentialRampToValueAtTime(0.4 / chord.length, t + duration * 0.7);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
 
       osc.connect(filter);
