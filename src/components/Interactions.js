@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
+import { soundEngine } from '../utils/soundEngine.js';
 
-export function setupInteractions(scene, camera, controls, lighting, furniture, pcSetup) {
+export function setupInteractions(scene, camera, controls, lighting, furniture, pcSetup, deskSetup) {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
@@ -26,10 +27,21 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     });
   }
 
+  // Unlock audio on first user gesture anywhere
+  const unlockAudio = () => {
+    soundEngine.init();
+    soundEngine.setFanState(true, 1.0);
+    window.removeEventListener('pointerdown', unlockAudio);
+    window.removeEventListener('keydown', unlockAudio);
+  };
+  window.addEventListener('pointerdown', unlockAudio);
+  window.addEventListener('keydown', unlockAudio);
+
   // 1. Main Monitor
   const monitor = scene.getObjectByName('MainMonitor');
   if (monitor) {
     registerItem(monitor, 'Workstation Monitor', 'monitor', () => {
+      soundEngine.playSwitchClick();
       openModal('💻 Developer Workstation', `
         <div class="terminal-header">&gt; developer.info()</div>
         <p style="margin-bottom: 12px; line-height: 1.6;">
@@ -45,9 +57,9 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
         <div class="terminal-header">&gt; current_setup.view()</div>
         <ul style="margin-left: 20px; line-height: 1.7; font-size: 13px;">
           <li><strong>Display:</strong> Dual Monitor Setup (Main with LED light bar + Vertical Discord)</li>
-          <li><strong>Audio:</strong> Logitech G435 Wireless Headset</li>
+          <li><strong>Audio:</strong> Desktop Studio Monitors & Logitech G435 Headset</li>
           <li><strong>Mouse:</strong> Logitech G304 Lightspeed</li>
-          <li><strong>Keyboard:</strong> Mechanical RGB Backlit</li>
+          <li><strong>Keyboard:</strong> Mechanical RGB Backlit (Type on your keyboard to hear & see keys!)</li>
         </ul>
         <div class="terminal-links">
           <a href="https://github.com" target="_blank" class="modal-btn">Visit GitHub</a>
@@ -55,6 +67,7 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
         </div>
       `);
       document.getElementById('modal-theme-toggle')?.addEventListener('click', () => {
+        soundEngine.playSwitchClick();
         lighting.state.uNightMix = lighting.state.uNightMix > 0.5 ? 0.0 : 0.85;
         lighting.update();
       });
@@ -65,6 +78,7 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   const pcRig = scene.getObjectByName('GamingPCRig');
   if (pcRig) {
     registerItem(pcRig, 'Gaming PC Rig', 'pc', () => {
+      soundEngine.playSwitchClick();
       openModal('⚡ Custom Gaming Rig', `
         <div class="terminal-header">&gt; system.specs()</div>
         <ul style="margin-left: 20px; line-height: 1.8; font-size: 13px;">
@@ -78,6 +92,7 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
         </div>
       `);
       document.getElementById('pc-rgb-cycle')?.addEventListener('click', () => {
+        soundEngine.playSwitchClick();
         const colors = ['#0082ff', '#ff115e', '#10b981', '#f59e0b', '#a855f7'];
         const nextColor = colors[Math.floor(Math.random() * colors.length)];
         lighting.state.pcColor = nextColor;
@@ -92,6 +107,8 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   if (fan) {
     registerItem(fan, 'Standing Fan (Click to Toggle)', 'fan', () => {
       const running = furniture.toggleFan();
+      soundEngine.playSwitchClick();
+      soundEngine.setFanState(running, 1.0);
       showQuickNotification(running ? '🌀 Fan turned ON' : '⏸️ Fan turned OFF');
     });
   }
@@ -100,10 +117,53 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   const clock = scene.getObjectByName('DigitalClock');
   if (clock) {
     registerItem(clock, 'Live Digital Clock', 'clock', () => {
+      soundEngine.playNotificationPop();
       const timeStr = new Date().toLocaleTimeString();
       showQuickNotification(`🕒 Current Local Time: ${timeStr}`);
     });
   }
+
+  // 5. Mechanical Keyboard Hotspot
+  const kb = scene.getObjectByName('MechanicalKeyboard');
+  if (kb) {
+    registerItem(kb, 'Mechanical Keyboard (Click or Type on Keyboard)', 'keyboard', () => {
+      soundEngine.playMechanicalKey('space');
+      if (deskSetup && deskSetup.pressRandomKey) {
+        deskSetup.pressRandomKey();
+      }
+      showQuickNotification('⌨️ Clicked Mechanical Switch! (Try typing on your real keyboard)');
+    });
+  }
+
+  // 6. Studio Speakers Hotspots
+  const spkLeft = scene.getObjectByName('StudioSpeakerLeft');
+  const spkRight = scene.getObjectByName('StudioSpeakerRight');
+  const onSpeakerClick = () => {
+    soundEngine.playSwitchClick();
+    const isPlaying = soundEngine.toggleMusic();
+    const curChan = soundEngine.getCurrentChannel();
+    updateRadioUI(isPlaying, curChan);
+    showQuickNotification(isPlaying ? `🎵 Playing: ${curChan.name}` : '⏸️ Music Paused');
+  };
+
+  if (spkLeft) registerItem(spkLeft, 'Studio Speaker (Click to Toggle Lo-Fi Radio)', 'speaker', onSpeakerClick);
+  if (spkRight) registerItem(spkRight, 'Studio Speaker (Click to Toggle Lo-Fi Radio)', 'speaker', onSpeakerClick);
+
+  // Real-time physical keyboard typing listener
+  window.addEventListener('keydown', (e) => {
+    // Ignore input fields if user is typing in a form
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    let keyType = 'normal';
+    if (e.code === 'Space') keyType = 'space';
+    else if (e.code === 'Enter' || e.code === 'Backspace') keyType = 'enter';
+
+    soundEngine.playMechanicalKey(keyType);
+
+    if (deskSetup && deskSetup.pressRandomKey) {
+      deskSetup.pressRandomKey();
+    }
+  });
 
   // Modal helpers
   function openModal(title, htmlContent) {
@@ -158,7 +218,7 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
   // Click Handler
   window.addEventListener('click', (e) => {
-    if (e.target.closest('.quick-bar') || e.target.closest('.lil-gui') || e.target.closest('.modal-card') || e.target.closest('.footer-credit')) {
+    if (e.target.closest('.quick-bar') || e.target.closest('.lil-gui') || e.target.closest('.modal-card') || e.target.closest('.footer-credit') || e.target.closest('.radio-widget')) {
       return;
     }
 
@@ -176,9 +236,60 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     }
   });
 
+  // Radio Player Widget DOM elements
+  const radioWidget = document.getElementById('radio-widget');
+  const radioPlayBtn = document.getElementById('radio-play-btn');
+  const radioNextBtn = document.getElementById('radio-next-btn');
+  const radioChannelName = document.getElementById('radio-channel-name');
+  const radioChannelIcon = document.getElementById('radio-channel-icon');
+  const radioVolume = document.getElementById('radio-volume');
+  const btnSoundMute = document.getElementById('btn-sound-mute');
+  const radioEqualizer = document.getElementById('radio-equalizer');
+
+  function updateRadioUI(isPlaying, channel) {
+    if (!channel) channel = soundEngine.getCurrentChannel();
+    if (radioPlayBtn) {
+      radioPlayBtn.innerText = isPlaying ? '⏸️' : '▶️';
+      radioPlayBtn.setAttribute('title', isPlaying ? 'Pause Lo-Fi Radio' : 'Play Lo-Fi Radio');
+    }
+    if (radioChannelName) radioChannelName.innerText = channel.name;
+    if (radioChannelIcon) radioChannelIcon.innerText = channel.icon;
+    if (radioEqualizer) {
+      if (isPlaying) radioEqualizer.classList.add('playing');
+      else radioEqualizer.classList.remove('playing');
+    }
+  }
+
+  radioPlayBtn?.addEventListener('click', () => {
+    soundEngine.playSwitchClick();
+    const isPlaying = soundEngine.toggleMusic();
+    updateRadioUI(isPlaying, soundEngine.getCurrentChannel());
+  });
+
+  radioNextBtn?.addEventListener('click', () => {
+    soundEngine.playSwitchClick();
+    const newChan = soundEngine.nextChannel();
+    updateRadioUI(soundEngine.isPlayingMusic, newChan);
+    showQuickNotification(`📻 Station: ${newChan.name}`);
+  });
+
+  radioVolume?.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    soundEngine.setVolume(val);
+  });
+
+  btnSoundMute?.addEventListener('click', () => {
+    const muted = soundEngine.toggleMute();
+    soundEngine.playSwitchClick();
+    btnSoundMute.innerText = muted ? '🔇' : '🔊';
+    btnSoundMute.setAttribute('title', muted ? 'Unmute Sound' : 'Mute Sound');
+    showQuickNotification(muted ? '🔇 Sound Muted' : '🔊 Sound Enabled');
+  });
+
   // Quick HUD Buttons
   const btnTheme = document.getElementById('btn-theme');
   btnTheme?.addEventListener('click', () => {
+    soundEngine.playSwitchClick();
     lighting.state.uNightMix = lighting.state.uNightMix > 0.5 ? 0.0 : 0.85;
     lighting.update();
     const isNight = lighting.state.uNightMix > 0.5;
@@ -189,11 +300,14 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   const btnFan = document.getElementById('btn-fan');
   btnFan?.addEventListener('click', () => {
     const running = furniture.toggleFan();
+    soundEngine.playSwitchClick();
+    soundEngine.setFanState(running, 1.0);
     btnFan.querySelector('.btn-text').innerText = running ? 'Fan: ON' : 'Fan: OFF';
   });
 
   const btnCamera = document.getElementById('btn-camera');
   btnCamera?.addEventListener('click', () => {
+    soundEngine.playSwitchClick();
     resetCameraView();
   });
 
@@ -217,6 +331,7 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
   // Camera presets
   function setCameraPreset(viewName) {
+    soundEngine.playSwitchClick();
     if (viewName === 'Isometric') {
       resetCameraView();
     } else if (viewName === 'Desk Setup') {
@@ -231,5 +346,5 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     }
   }
 
-  return { setCameraPreset, resetCameraView };
+  return { setCameraPreset, resetCameraView, updateRadioUI };
 }

@@ -5,6 +5,7 @@ import {
   createLogitechBoxTexture,
   createSofaPatternTexture
 } from '../utils/textures.js';
+import { soundEngine } from '../utils/soundEngine.js';
 
 export function createFurniture() {
   const furnitureGroup = new THREE.Group();
@@ -318,12 +319,16 @@ export function createFurniture() {
 
   return {
     group: furnitureGroup,
+    getFanRunning: () => fanRunning,
     toggleFan: () => {
       fanRunning = !fanRunning;
       return fanRunning;
     },
     setFanSpeed: (val) => {
       fanSpeed = val;
+      if (fanRunning) {
+        soundEngine.setFanState(true, fanSpeed);
+      }
     },
     update: (delta) => {
       if (fanRunning) {

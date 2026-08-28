@@ -13,6 +13,7 @@ import { createFurniture } from './components/Furniture.js';
 import { createLighting } from './components/Lighting.js';
 import { createGUI } from './components/GUI.js';
 import { setupInteractions } from './components/Interactions.js';
+import { soundEngine } from './utils/soundEngine.js';
 
 // 1. Scene Setup
 const canvas = document.querySelector('#webgl');
@@ -84,7 +85,7 @@ const room = createRoom();
 scene.add(room);
 
 const deskSetup = createDeskSetup();
-scene.add(deskSetup);
+scene.add(deskSetup.group);
 
 const pcSetup = createPCSetup();
 pcSetup.group.position.set(1.15, 0.95 + 0.68 / 2, -2.7);
@@ -117,7 +118,8 @@ interactionsHandler = setupInteractions(
   controls,
   lighting,
   furniture,
-  pcSetup
+  pcSetup,
+  deskSetup
 );
 
 // 9. Minimize / Expand Toggle for Quick Bar
@@ -125,6 +127,7 @@ const quickBar = document.getElementById('quick-bar');
 const quickBarToggle = document.getElementById('quick-bar-toggle');
 
 quickBarToggle?.addEventListener('click', () => {
+  soundEngine.playSwitchClick();
   quickBar?.classList.toggle('minimized');
 });
 
@@ -133,6 +136,7 @@ const presetPills = document.querySelectorAll('.preset-pill');
 presetPills.forEach((pill) => {
   pill.addEventListener('click', (e) => {
     e.stopPropagation();
+    soundEngine.playSwitchClick();
     presetPills.forEach((p) => p.classList.remove('active'));
     pill.classList.add('active');
 
@@ -149,6 +153,7 @@ const camPills = document.querySelectorAll('.cam-pill');
 camPills.forEach((pill) => {
   pill.addEventListener('click', (e) => {
     e.stopPropagation();
+    soundEngine.playSwitchClick();
     camPills.forEach((p) => p.classList.remove('active'));
     pill.classList.add('active');
 
@@ -181,6 +186,17 @@ function animate() {
   pcSetup.update(delta);
   furniture.update(delta);
   controls.update();
+
+  // Speaker audio LED visualizer ring pulse
+  if (deskSetup && deskSetup.speakerLedMat) {
+    if (soundEngine.isPlayingMusic) {
+      const audioLevel = soundEngine.getAudioLevel();
+      const pulseIntensity = 0.5 + audioLevel * 1.8;
+      deskSetup.speakerLedMat.color.setHSL(0.5 + audioLevel * 0.2, 1.0, Math.min(0.8, 0.35 * pulseIntensity));
+    } else {
+      deskSetup.speakerLedMat.color.set('#0088aa');
+    }
+  }
 
   composer.render();
 

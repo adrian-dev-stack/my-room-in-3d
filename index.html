@@ -66,6 +66,42 @@
       </div>
     </div>
 
+    <!-- Top Sound / Mute Toggle Button -->
+    <button class="sound-toggle-btn" id="btn-sound-mute" title="Toggle Sound">🔊</button>
+
+    <!-- Lo-Fi / Synthwave Desktop Radio Widget -->
+    <div class="radio-widget" id="radio-widget">
+      <div class="radio-header">
+        <div class="radio-station-info">
+          <span class="radio-icon" id="radio-channel-icon">☕</span>
+          <div class="radio-titles">
+            <span class="radio-title-label">Lo-Fi Radio Station</span>
+            <span class="radio-station-name" id="radio-channel-name">Lo-Fi Chill Beats</span>
+          </div>
+        </div>
+        <!-- Animated Equalizer Bars -->
+        <div class="equalizer-bars" id="radio-equalizer">
+          <span class="bar bar-1"></span>
+          <span class="bar bar-2"></span>
+          <span class="bar bar-3"></span>
+          <span class="bar bar-4"></span>
+        </div>
+      </div>
+
+      <div class="radio-controls">
+        <button class="radio-btn play-btn" id="radio-play-btn" title="Play/Pause Radio">▶️</button>
+        <button class="radio-btn next-btn" id="radio-next-btn" title="Next Station">⏭️</button>
+        <div class="volume-slider-group">
+          <span class="vol-icon">🔉</span>
+          <input type="range" id="radio-volume" min="0" max="1" step="0.05" value="0.7" class="radio-volume-slider" title="Volume Slider" />
+        </div>
+      </div>
+
+      <div class="radio-hint">
+        <span>⌨️ Type on your physical keyboard for mechanical switch clicks</span>
+      </div>
+    </div>
+
     <!-- Bottom Left Controls Guide -->
     <div class="controls-guide">
       <div class="guide-item"><span>Left Click + Drag</span> • Orbit</div>
