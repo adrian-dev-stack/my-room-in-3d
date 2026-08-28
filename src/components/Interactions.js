@@ -37,40 +37,54 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   window.addEventListener('pointerdown', unlockAudio);
   window.addEventListener('keydown', unlockAudio);
 
-  // 1. Main Monitor
+  // Screen mode toast notification
+  const MODE_LABELS = {
+    vscode: 'VS Code',
+    terminal: 'Terminal',
+    fivem: 'FiveM Dashboard',
+    portfolio: 'Portfolio',
+    discord: 'Discord',
+    spotify: 'Spotify',
+    'chat-log': 'Server Logs'
+  };
+
+  function showScreenToast(icon, mode) {
+    const label = MODE_LABELS[mode] || mode;
+    let toast = document.getElementById('screen-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'screen-toast';
+      document.body.appendChild(toast);
+    }
+    toast.innerHTML = `${icon} <strong>${label}</strong>`;
+    toast.className = 'screen-toast show';
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 1500);
+  }
+
+  // 1. Main Monitor — Click to cycle screen modes
   const monitor = scene.getObjectByName('MainMonitor');
   if (monitor) {
-    registerItem(monitor, 'Workstation Monitor', 'monitor', () => {
+    registerItem(monitor, 'Workstation Monitor — Click to switch', 'monitor', () => {
       soundEngine.playSwitchClick();
-      openModal('💻 Developer Workstation', `
-        <div class="terminal-header">&gt; developer.info()</div>
-        <p style="margin-bottom: 12px; line-height: 1.6;">
-          Welcome to my interactive 3D room! I'm a developer building web applications, game servers (FiveM), and immersive 3D web experiences.
-        </p>
-        <div style="margin-bottom: 16px;">
-          <span class="terminal-badge">JavaScript</span>
-          <span class="terminal-badge">Three.js</span>
-          <span class="terminal-badge">FiveM / Lua</span>
-          <span class="terminal-badge">React</span>
-          <span class="terminal-badge">Node.js</span>
-        </div>
-        <div class="terminal-header">&gt; current_setup.view()</div>
-        <ul style="margin-left: 20px; line-height: 1.7; font-size: 13px;">
-          <li><strong>Display:</strong> Dual Monitor Setup (Main with LED light bar + Vertical Discord)</li>
-          <li><strong>Audio:</strong> Desktop Studio Monitors & Logitech G435 Headset</li>
-          <li><strong>Mouse:</strong> Logitech G304 Lightspeed</li>
-          <li><strong>Keyboard:</strong> Mechanical RGB Backlit (Type on your keyboard to hear & see keys!)</li>
-        </ul>
-        <div class="terminal-links">
-          <a href="https://github.com" target="_blank" class="modal-btn">Visit GitHub</a>
-          <button class="modal-btn secondary" id="modal-theme-toggle">Toggle Room Lights</button>
-        </div>
-      `);
-      document.getElementById('modal-theme-toggle')?.addEventListener('click', () => {
-        soundEngine.playSwitchClick();
-        lighting.state.uNightMix = lighting.state.uNightMix > 0.5 ? 0.0 : 0.85;
-        lighting.update();
-      });
+      if (deskSetup && deskSetup.screenManager) {
+        const newMode = deskSetup.screenManager.cycleMainMode();
+        showScreenToast('🖥️', newMode);
+      }
+    });
+  }
+
+  // 1b. Vertical Monitor — Click to cycle screen modes
+  const vertMon = scene.getObjectByName('VerticalMonitor');
+  if (vertMon) {
+    registerItem(vertMon, 'Vertical Monitor — Click to switch', 'monitor', () => {
+      soundEngine.playSwitchClick();
+      if (deskSetup && deskSetup.screenManager) {
+        const newMode = deskSetup.screenManager.cycleVertMode();
+        showScreenToast('📱', newMode);
+      }
     });
   }
 

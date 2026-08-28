@@ -1,10 +1,13 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { createCodeEditorTexture, createDiscordTexture } from '../utils/textures.js';
+import { AnimatedScreenManager } from '../utils/animatedScreens.js';
 
 export function createDeskSetup() {
   const deskGroup = new THREE.Group();
   deskGroup.name = 'WorkstationDesk';
+
+  // Animated screen manager for live-updating monitor content
+  const screenManager = new AnimatedScreenManager();
 
   // Materials matching photo 3
   const darkWoodDeskMat = new THREE.MeshStandardMaterial({
@@ -79,8 +82,7 @@ export function createDeskSetup() {
   const mainMonGroup = new THREE.Group();
   mainMonGroup.name = 'MainMonitor';
 
-  const codeEditorTex = createCodeEditorTexture();
-  const screenMat = new THREE.MeshBasicMaterial({ map: codeEditorTex });
+  const screenMat = new THREE.MeshBasicMaterial({ map: screenManager.mainTexture });
 
   const monFrameGeo = new RoundedBoxGeometry(1.36, 0.82, 0.035, 4, 0.008);
   const monFrame = new THREE.Mesh(monFrameGeo, blackMetalMat);
@@ -132,8 +134,7 @@ export function createDeskSetup() {
   const vertMonGroup = new THREE.Group();
   vertMonGroup.name = 'VerticalMonitor';
 
-  const discordTex = createDiscordTexture();
-  const discordScreenMat = new THREE.MeshBasicMaterial({ map: discordTex });
+  const discordScreenMat = new THREE.MeshBasicMaterial({ map: screenManager.vertTexture });
 
   const vertFrameGeo = new RoundedBoxGeometry(0.68, 1.06, 0.035, 4, 0.008);
   const vertFrame = new THREE.Mesh(vertFrameGeo, blackMetalMat);
@@ -330,6 +331,7 @@ export function createDeskSetup() {
     pressRandomKey,
     speakerLedMat,
     leftSpeaker: leftSpeaker.spkGroup,
-    rightSpeaker: rightSpeaker.spkGroup
+    rightSpeaker: rightSpeaker.spkGroup,
+    screenManager
   };
 }

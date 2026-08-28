@@ -183,6 +183,11 @@ function animate() {
   furniture.update(delta);
   controls.update();
 
+  // Update animated monitor screens
+  if (deskSetup && deskSetup.screenManager) {
+    deskSetup.screenManager.update(delta);
+  }
+
   // Speaker audio LED visualizer ring pulse
   if (deskSetup && deskSetup.speakerLedMat) {
     if (soundEngine.isPlayingMusic) {
