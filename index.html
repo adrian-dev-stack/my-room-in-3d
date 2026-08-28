@@ -4,53 +4,152 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>My Room in 3D - Modern Edition</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>My Room in 3D — FiveM Player</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <!-- 3D Canvas -->
+    <!-- 3D WebGL Canvas -->
     <canvas id="webgl" class="webgl"></canvas>
 
-    <!-- Top Left Performance HUD -->
+    <!-- Top Left Performance Stats -->
     <div id="stats-container" class="stats-hud"></div>
 
-    <!-- Minimizable Quick Atmosphere & Camera Bar -->
-    <div class="quick-bar" id="quick-bar">
-      <div class="quick-bar-top" id="quick-bar-toggle" title="Click to minimize/expand">
-        <div class="header-left">
-          <span class="header-icon">✨</span>
-          <span class="header-title">Atmosphere & Views</span>
-        </div>
-        <button class="collapse-btn" id="btn-collapse" aria-label="Toggle Panel">▾</button>
-      </div>
-
-      <div class="quick-bar-content" id="quick-bar-content">
-        <div class="quick-header">Lighting Atmosphere</div>
-        <div class="preset-pill-group">
-          <button class="preset-pill active" data-preset="Cyberpunk Night">🌌 Cyberpunk</button>
-          <button class="preset-pill" data-preset="Sunset Studio">🌆 Sunset</button>
-          <button class="preset-pill" data-preset="Clean Daylight">☀️ Daylight</button>
-          <button class="preset-pill" data-preset="Cozy Lo-Fi">🕯️ Cozy</button>
-        </div>
-
-        <div class="quick-header" style="margin-top: 10px;">Camera View</div>
-        <div class="preset-pill-group">
-          <button class="cam-pill active" data-cam="Isometric">📐 Room</button>
-          <button class="cam-pill" data-cam="Desk Setup">🖥️ Desk</button>
-          <button class="cam-pill" data-cam="Bed Corner">🛏️ Bed</button>
+    <!-- Top Navigation Glass Island -->
+    <header class="top-nav-bar">
+      <div class="brand-badge">
+        <span class="live-dot"></span>
+        <div class="brand-text">
+          <span class="brand-title">3D WORKSPACE</span>
+          <span class="brand-sub">FiveM Player</span>
         </div>
       </div>
+
+      <div class="top-actions">
+        <button class="nav-action-btn" id="btn-sound-mute" title="Toggle Sound (Mute/Unmute)">
+          <span class="btn-icon">🔊</span>
+          <span class="btn-tooltip">Sound</span>
+        </button>
+
+        <button class="nav-action-btn" id="btn-fullscreen" title="Toggle Fullscreen">
+          <span class="btn-icon">⛶</span>
+          <span class="btn-tooltip">Fullscreen</span>
+        </button>
+
+        <button class="nav-action-btn" id="btn-settings-gui" title="Toggle Settings Panel">
+          <span class="btn-icon">⚙️</span>
+          <span class="btn-tooltip">Tweak Lights</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Unified Floating Bottom Control Dock -->
+    <nav class="bottom-dock-wrapper" aria-label="Room Controls Dock">
+      <div class="bottom-dock">
+        <!-- Atmosphere Presets Group -->
+        <div class="dock-section">
+          <span class="dock-section-title">Atmosphere</span>
+          <div class="dock-pill-group">
+            <button class="preset-pill active" data-preset="Cyberpunk Night">
+              <span class="pill-icon">🌌</span>
+              <span class="pill-label">Cyberpunk</span>
+            </button>
+            <button class="preset-pill" data-preset="Sunset Studio">
+              <span class="pill-icon">🌆</span>
+              <span class="pill-label">Sunset</span>
+            </button>
+            <button class="preset-pill" data-preset="Clean Daylight">
+              <span class="pill-icon">☀️</span>
+              <span class="pill-label">Daylight</span>
+            </button>
+            <button class="preset-pill" data-preset="Cozy Lo-Fi">
+              <span class="pill-icon">🕯️</span>
+              <span class="pill-label">Cozy</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="dock-divider"></div>
+
+        <!-- Camera Views Group -->
+        <div class="dock-section">
+          <span class="dock-section-title">Camera</span>
+          <div class="dock-pill-group">
+            <button class="cam-pill active" data-cam="Isometric">
+              <span class="pill-icon">📐</span>
+              <span class="pill-label">Room</span>
+            </button>
+            <button class="cam-pill" data-cam="Desk Setup">
+              <span class="pill-icon">🖥️</span>
+              <span class="pill-label">Desk</span>
+            </button>
+            <button class="cam-pill" data-cam="Bed Corner">
+              <span class="pill-icon">🛏️</span>
+              <span class="pill-label">Bed</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="dock-divider"></div>
+
+        <!-- Lo-Fi Radio Player Group -->
+        <div class="dock-section dock-radio-section" id="radio-widget">
+          <div class="radio-main-info">
+            <span class="radio-icon" id="radio-channel-icon">☕</span>
+            <div class="radio-meta">
+              <span class="radio-badge">Lo-Fi Radio</span>
+              <span class="radio-title" id="radio-channel-name">Lo-Fi Chill Beats</span>
+            </div>
+            <!-- Equalizer Waveform -->
+            <div class="equalizer-bars" id="radio-equalizer">
+              <span class="bar bar-1"></span>
+              <span class="bar bar-2"></span>
+              <span class="bar bar-3"></span>
+              <span class="bar bar-4"></span>
+            </div>
+          </div>
+
+          <div class="radio-dock-controls">
+            <button class="dock-btn-icon" id="radio-play-btn" title="Play / Pause Music">▶️</button>
+            <button class="dock-btn-icon" id="radio-next-btn" title="Next Station">⏭️</button>
+            <div class="dock-volume-slider">
+              <span class="vol-icon">🔉</span>
+              <input
+                type="range"
+                id="radio-volume"
+                min="0"
+                max="1"
+                step="0.05"
+                value="0.7"
+                class="radio-volume-input"
+                title="Volume"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Bottom Left Keybinding Hints -->
+    <div class="key-hints-badge">
+      <div class="hint-item"><span class="key-tag">Left Click</span> Orbit</div>
+      <div class="hint-item"><span class="key-tag">Right Click</span> Pan</div>
+      <div class="hint-item"><span class="key-tag">Scroll</span> Zoom</div>
+      <div class="hint-item highlight"><span class="key-tag">Type Any Key</span> ⌨️ SFX</div>
     </div>
 
-    <!-- Hotspot Tooltip -->
+    <!-- Hotspot Interactive Tooltip -->
     <div id="tooltip" class="interactive-tooltip">
+      <span class="tooltip-dot"></span>
       <span id="tooltip-text">Click to interact</span>
     </div>
 
-    <!-- Interactive Object Modal -->
+    <!-- Interactive Terminal Modal Window -->
     <div id="modal-backdrop" class="modal-backdrop hidden">
       <div class="modal-card">
         <div class="modal-header">
@@ -66,54 +165,10 @@
       </div>
     </div>
 
-    <!-- Top Sound / Mute Toggle Button -->
-    <button class="sound-toggle-btn" id="btn-sound-mute" title="Toggle Sound">🔊</button>
-
-    <!-- Lo-Fi / Synthwave Desktop Radio Widget -->
-    <div class="radio-widget" id="radio-widget">
-      <div class="radio-header">
-        <div class="radio-station-info">
-          <span class="radio-icon" id="radio-channel-icon">☕</span>
-          <div class="radio-titles">
-            <span class="radio-title-label">Lo-Fi Radio Station</span>
-            <span class="radio-station-name" id="radio-channel-name">Lo-Fi Chill Beats</span>
-          </div>
-        </div>
-        <!-- Animated Equalizer Bars -->
-        <div class="equalizer-bars" id="radio-equalizer">
-          <span class="bar bar-1"></span>
-          <span class="bar bar-2"></span>
-          <span class="bar bar-3"></span>
-          <span class="bar bar-4"></span>
-        </div>
-      </div>
-
-      <div class="radio-controls">
-        <button class="radio-btn play-btn" id="radio-play-btn" title="Play/Pause Radio">▶️</button>
-        <button class="radio-btn next-btn" id="radio-next-btn" title="Next Station">⏭️</button>
-        <div class="volume-slider-group">
-          <span class="vol-icon">🔉</span>
-          <input type="range" id="radio-volume" min="0" max="1" step="0.05" value="0.7" class="radio-volume-slider" title="Volume Slider" />
-        </div>
-      </div>
-
-      <div class="radio-hint">
-        <span>⌨️ Type on your physical keyboard for mechanical switch clicks</span>
-      </div>
-    </div>
-
-    <!-- Bottom Left Controls Guide -->
-    <div class="controls-guide">
-      <div class="guide-item"><span>Left Click + Drag</span> • Orbit</div>
-      <div class="guide-item"><span>Right Click + Drag</span> • Pan</div>
-      <div class="guide-item"><span>Scroll</span> • Zoom</div>
-      <div class="guide-item highlight"><span>Click Items</span> • Hotspots</div>
-    </div>
-
     <!-- Bottom Right Credits Footer -->
     <div class="footer-credit">
-      <span>My Room in 3D by <strong class="author-name">FiveM Player</strong></span>
-      <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="source-link">(Source code)</a>
+      <span>Built with Three.js by <strong class="author-name">FiveM Player</strong></span>
+      <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="source-link">(GitHub)</a>
     </div>
 
     <script type="module" src="/src/main.js"></script>

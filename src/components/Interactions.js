@@ -281,12 +281,36 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   btnSoundMute?.addEventListener('click', () => {
     const muted = soundEngine.toggleMute();
     soundEngine.playSwitchClick();
-    btnSoundMute.innerText = muted ? '🔇' : '🔊';
+    const iconSpan = btnSoundMute.querySelector('.btn-icon') || btnSoundMute;
+    iconSpan.innerText = muted ? '🔇' : '🔊';
     btnSoundMute.setAttribute('title', muted ? 'Unmute Sound' : 'Mute Sound');
     showQuickNotification(muted ? '🔇 Sound Muted' : '🔊 Sound Enabled');
   });
 
-  // Quick HUD Buttons
+  // Fullscreen Toggle
+  const btnFullscreen = document.getElementById('btn-fullscreen');
+  btnFullscreen?.addEventListener('click', () => {
+    soundEngine.playSwitchClick();
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      btnFullscreen.setAttribute('title', 'Exit Fullscreen');
+    } else {
+      document.exitFullscreen().catch(() => {});
+      btnFullscreen.setAttribute('title', 'Enter Fullscreen');
+    }
+  });
+
+  // Settings GUI Toggle
+  const btnSettingsGui = document.getElementById('btn-settings-gui');
+  btnSettingsGui?.addEventListener('click', () => {
+    soundEngine.playSwitchClick();
+    const guiRoot = document.querySelector('.lil-gui.root');
+    if (guiRoot) {
+      guiRoot.classList.toggle('gui-hidden');
+    }
+  });
+
+  // Quick HUD Buttons (Legacy / Secondary compatibility)
   const btnTheme = document.getElementById('btn-theme');
   btnTheme?.addEventListener('click', () => {
     soundEngine.playSwitchClick();

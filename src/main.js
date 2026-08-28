@@ -105,6 +105,11 @@ const { gui } = createGUI(lighting, furniture, pcSetup, (preset) => {
   }
 });
 
+// Hide debug lil-gui by default so the room is clean (toggleable via ⚙️ Settings button)
+if (gui && gui.domElement) {
+  gui.domElement.classList.add('gui-hidden');
+}
+
 // Bloom controls in GUI
 const bloomFolder = gui.addFolder('bloom / effects');
 bloomFolder.close();
@@ -121,15 +126,6 @@ interactionsHandler = setupInteractions(
   pcSetup,
   deskSetup
 );
-
-// 9. Minimize / Expand Toggle for Quick Bar
-const quickBar = document.getElementById('quick-bar');
-const quickBarToggle = document.getElementById('quick-bar-toggle');
-
-quickBarToggle?.addEventListener('click', () => {
-  soundEngine.playSwitchClick();
-  quickBar?.classList.toggle('minimized');
-});
 
 // Atmosphere Preset Pills UI Event Listeners
 const presetPills = document.querySelectorAll('.preset-pill');
