@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { soundEngine } from '../utils/soundEngine.js';
 
-export function setupInteractions(scene, camera, controls, lighting, furniture, pcSetup, deskSetup, rcCar) {
+export function setupInteractions(scene, camera, controls, lighting, furniture, pcSetup, deskSetup, rcCar, fpsController) {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
@@ -593,6 +593,19 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   // Camera presets
   function setCameraPreset(viewName) {
     soundEngine.playSwitchClick();
+
+    if (fpsController && fpsController.active && viewName !== 'First Person') {
+      fpsController.disable();
+    }
+
+    if (viewName === 'First Person') {
+      if (fpsController) {
+        fpsController.enable();
+        showQuickNotification('🚶 Click to look around. WASD to walk, Shift to sprint, Esc to exit.');
+      }
+      return;
+    }
+
     if (viewName === 'Isometric') {
       resetCameraView();
     } else if (viewName === 'Desk Setup') {

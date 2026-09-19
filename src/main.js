@@ -31,6 +31,8 @@ import { createLighting } from './components/Lighting.js';
 import { createGUI } from './components/GUI.js';
 import { setupInteractions } from './components/Interactions.js';
 import { createRCCar } from './components/RCCar.js';
+import { FirstPersonController } from './components/FirstPersonController.js';
+import { SpatialAudioSystem } from './utils/spatialAudio.js';
 import { soundEngine } from './utils/soundEngine.js';
 import { WeatherSync } from './utils/weatherSync.js';
 
@@ -118,6 +120,17 @@ const lighting = createLighting(scene);
 // RC Cyber Rover
 const rcCar = createRCCar(scene, soundEngine);
 
+// First-Person Walkthrough & 3D Positional Audio
+const fpsController = new FirstPersonController(camera, canvas, soundEngine);
+const spatialAudio = new SpatialAudioSystem(camera, scene, soundEngine);
+
+window.addEventListener('pointerdown', () => spatialAudio.init(), { once: true });
+window.addEventListener('keydown', () => spatialAudio.init(), { once: true });
+
+window.addEventListener('fps-mode-change', (e) => {
+  controls.enabled = !e.detail.active;
+});
+
 // Real-Time Weather & Time Sync
 const weatherSync = new WeatherSync();
 weatherSync.onUpdate((weatherData) => {
@@ -162,7 +175,8 @@ interactionsHandler = setupInteractions(
   furniture,
   pcSetup,
   deskSetup,
-  rcCar
+  rcCar,
+  fpsController
 );
 
 // RC Drive Mode Button Listener
@@ -229,11 +243,14 @@ function animate() {
   furniture.update(delta);
   rcCar.update(delta);
 
-  if (rcCar.state.active) {
-    controls.target.lerp(new THREE.Vector3(rcCar.state.posX, rcCar.state.posY + 0.3, rcCar.state.posZ), 0.08);
+  if (fpsController.active) {
+    fpsController.update(delta);
+  } else {
+    if (rcCar.state.active) {
+      controls.target.lerp(new THREE.Vector3(rcCar.state.posX, rcCar.state.posY + 0.3, rcCar.state.posZ), 0.08);
+    }
+    controls.update();
   }
-
-  controls.update();
 
   // Update animated monitor screens
   if (deskSetup && deskSetup.screenManager) {
