@@ -20,18 +20,31 @@ export class WeatherSync {
     this.onUpdateCallbacks.push(callback);
   }
 
+  async _fetchWithTimeout(url, timeoutMs = 4000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      return res;
+    } catch (err) {
+      clearTimeout(timer);
+      throw err;
+    }
+  }
+
   async init() {
     try {
-      // 1. Get approximate coordinates based on IP
-      const geoRes = await fetch('https://get.geojs.io/v1/ip/geo.json');
+      // 1. Get approximate coordinates based on IP (with 4s timeout)
+      const geoRes = await this._fetchWithTimeout('https://get.geojs.io/v1/ip/geo.json', 4000);
       if (!geoRes.ok) throw new Error('Geo fetch failed');
       const geoData = await geoRes.json();
       
       const lat = geoData.latitude;
       const lon = geoData.longitude;
       
-      // 2. Get weather from Open-Meteo
-      const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+      // 2. Get weather from Open-Meteo (with 4s timeout)
+      const weatherRes = await this._fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`, 4000);
       if (!weatherRes.ok) throw new Error('Weather fetch failed');
       const weatherData = await weatherRes.json();
       
@@ -48,7 +61,7 @@ export class WeatherSync {
       setInterval(() => this.updateWeather(lat, lon), 15 * 60 * 1000);
       
     } catch (err) {
-      console.warn('WeatherSync failed, defaulting to Clear Day.', err);
+      console.warn('WeatherSync fetch failed or timed out, defaulting to Clear Day.', err.message || err);
       // Default fallback
       this.weatherState.isDay = true;
       this.weatherState.condition = 'clear';
@@ -58,7 +71,7 @@ export class WeatherSync {
 
   async updateWeather(lat, lon) {
     try {
-      const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+      const weatherRes = await this._fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`, 4000);
       if (weatherRes.ok) {
         const weatherData = await weatherRes.json();
         const current = weatherData.current_weather;
@@ -69,7 +82,7 @@ export class WeatherSync {
         this._notify();
       }
     } catch (err) {
-      console.warn('Failed to update weather in background.', err);
+      console.warn('Failed to update weather in background.', err.message || err);
     }
   }
 

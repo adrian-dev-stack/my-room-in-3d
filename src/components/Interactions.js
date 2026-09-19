@@ -179,15 +179,35 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     }
   });
 
-  // Modal helpers
+  // Modal helpers with DOM sanitization
   function openModal(title, htmlContent) {
-    modalTitle.innerText = title;
-    modalBody.innerHTML = htmlContent;
+    modalTitle.textContent = title;
+
+    // Safely parse and sanitize HTML before inserting
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, 'text/html');
+
+    // Remove any potential script, iframe, or embed elements
+    doc.querySelectorAll('script, iframe, object, embed').forEach((el) => el.remove());
+
+    // Ensure all external links enforce security attributes
+    doc.querySelectorAll('a').forEach((a) => {
+      a.setAttribute('rel', 'noopener noreferrer');
+      a.setAttribute('target', '_blank');
+    });
+
+    modalBody.innerHTML = '';
+    while (doc.body.firstChild) {
+      modalBody.appendChild(doc.body.firstChild);
+    }
+
     modalBackdrop.classList.remove('hidden');
+    modalBackdrop.setAttribute('aria-hidden', 'false');
   }
 
   function closeModal() {
     modalBackdrop.classList.add('hidden');
+    modalBackdrop.setAttribute('aria-hidden', 'true');
   }
 
   modalCloseBtn.addEventListener('click', closeModal);
