@@ -10,8 +10,8 @@ import * as THREE from 'three';
 // MAIN MONITOR SCREEN MODES
 // ============================================================================
 
-const MAIN_MODES = ['vscode', 'terminal', 'fivem', 'portfolio'];
-const VERT_MODES = ['discord', 'spotify', 'chat-log'];
+export const MAIN_MODES = ['vscode', 'terminal', 'fivem', 'portfolio'];
+export const VERT_MODES = ['discord', 'spotify', 'chat-log'];
 
 export class AnimatedScreenManager {
   constructor() {
