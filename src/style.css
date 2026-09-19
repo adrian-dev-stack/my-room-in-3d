@@ -48,6 +48,28 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Accessibility Screen Reader Only Utility */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Accessible Focus States */
+button:focus-visible,
+input:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent-cyan) !important;
+  outline-offset: 3px !important;
+}
+
 /* 3D Canvas */
 .webgl {
   position: fixed;

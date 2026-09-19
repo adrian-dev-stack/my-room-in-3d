@@ -210,20 +210,48 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     modalBackdrop.setAttribute('aria-hidden', 'true');
   }
 
+  // Accessibility live region announcer
+  function announceToA11y(msg) {
+    const announcer = document.getElementById('a11y-announcer');
+    if (announcer) {
+      announcer.textContent = msg;
+    }
+  }
+
   modalCloseBtn.addEventListener('click', closeModal);
+  modalCloseBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      closeModal();
+    }
+  });
   modalCloseX.addEventListener('click', closeModal);
   modalBackdrop.addEventListener('click', (e) => {
     if (e.target === modalBackdrop) closeModal();
+  });
+
+  // Close modal on Escape key press
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modalBackdrop.classList.contains('hidden')) {
+      closeModal();
+    }
   });
 
   // Quick notification
   function showQuickNotification(msg) {
     tooltipText.innerText = msg;
     tooltip.classList.add('visible');
+    announceToA11y(msg);
     setTimeout(() => {
       tooltip.classList.remove('visible');
     }, 2000);
   }
+
+  // Pointer position tracking to differentiate orbit drag from click
+  let pointerDownPos = { x: 0, y: 0 };
+  window.addEventListener('pointerdown', (e) => {
+    pointerDownPos = { x: e.clientX, y: e.clientY };
+  });
 
   // Mouse Move Raycasting for hover tooltip
   window.addEventListener('mousemove', (e) => {
@@ -250,9 +278,23 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     tooltip.classList.remove('visible');
   });
 
-  // Click Handler
+  // Click Handler with drag delta threshold
   window.addEventListener('click', (e) => {
-    if (e.target.closest('.quick-bar') || e.target.closest('.lil-gui') || e.target.closest('.modal-card') || e.target.closest('.footer-credit') || e.target.closest('.radio-widget')) {
+    // If pointer moved more than 8px between down and up, it was an orbit/pan drag, not a click
+    const dragDistance = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+    if (dragDistance > 8) {
+      return;
+    }
+
+    if (
+      e.target.closest('.bottom-dock-wrapper') ||
+      e.target.closest('.top-nav-bar') ||
+      e.target.closest('.quick-bar') ||
+      e.target.closest('.lil-gui') ||
+      e.target.closest('.modal-card') ||
+      e.target.closest('.footer-credit') ||
+      e.target.closest('.radio-widget')
+    ) {
       return;
     }
 
