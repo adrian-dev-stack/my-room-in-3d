@@ -15,8 +15,9 @@ export class AnimatedWindow {
     this.texture = new THREE.CanvasTexture(this.canvas);
     this.texture.wrapS = THREE.RepeatWrapping;
     this.texture.wrapT = THREE.RepeatWrapping;
-    this.texture.generateMipmaps = true;
-    this.texture.minFilter = THREE.LinearMipmapLinearFilter;
+    this.texture.generateMipmaps = false;
+    this.texture.minFilter = THREE.LinearFilter;
+    this.texture.magFilter = THREE.LinearFilter;
     
     this.weatherState = {
       isDay: true,
@@ -28,8 +29,12 @@ export class AnimatedWindow {
     this.lightningFlash = 0;
     this.lastLightning = 0;
     
+    this.windowUpdateInterval = 1 / 24;
+    this.timeSinceLastUpdate = this.windowUpdateInterval;
+    
     this._initRaindrops();
     this._render(0);
+    this.texture.needsUpdate = true;
   }
 
   _initRaindrops() {
@@ -51,19 +56,25 @@ export class AnimatedWindow {
 
   update(delta) {
     this.elapsed += delta;
-    let needsUpdate = false;
+    this.timeSinceLastUpdate += delta;
+
+    if (this.timeSinceLastUpdate < this.windowUpdateInterval) {
+      return;
+    }
+
+    const step = this.timeSinceLastUpdate;
+    this.timeSinceLastUpdate = 0;
     
     // Animate raindrops if raining
     if (this.weatherState.condition === 'rain' || this.weatherState.condition === 'snow') {
       this.raindrops.forEach(drop => {
         const speedMult = this.weatherState.condition === 'snow' ? 0.2 : 1.0;
-        drop.y += drop.speed * speedMult * delta;
+        drop.y += drop.speed * speedMult * step;
         if (drop.y > 1024 + drop.length) {
           drop.y = -drop.length;
           drop.x = Math.random() * 1024;
         }
       });
-      needsUpdate = true;
       
       // Random lightning
       if (this.weatherState.condition === 'rain' && this.elapsed - this.lastLightning > 5) {
@@ -75,12 +86,10 @@ export class AnimatedWindow {
     }
     
     if (this.lightningFlash > 0) {
-      this.lightningFlash = Math.max(0, this.lightningFlash - delta * 2.5);
-      needsUpdate = true;
+      this.lightningFlash = Math.max(0, this.lightningFlash - step * 2.5);
     }
     
-    // Always render to handle day/night transitions smoothly (could be optimized, but ok for now)
-    this._render(delta);
+    this._render(step);
     this.texture.needsUpdate = true;
   }
 

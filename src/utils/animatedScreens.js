@@ -21,8 +21,9 @@ export class AnimatedScreenManager {
     this.mainCanvas.height = 1152;
     this.mainCtx = this.mainCanvas.getContext('2d');
     this.mainTexture = new THREE.CanvasTexture(this.mainCanvas);
-    this.mainTexture.generateMipmaps = true;
-    this.mainTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    this.mainTexture.generateMipmaps = false;
+    this.mainTexture.minFilter = THREE.LinearFilter;
+    this.mainTexture.magFilter = THREE.LinearFilter;
 
     // Vertical monitor canvas (portrait 9:16)
     this.vertCanvas = document.createElement('canvas');
@@ -30,8 +31,9 @@ export class AnimatedScreenManager {
     this.vertCanvas.height = 1920;
     this.vertCtx = this.vertCanvas.getContext('2d');
     this.vertTexture = new THREE.CanvasTexture(this.vertCanvas);
-    this.vertTexture.generateMipmaps = true;
-    this.vertTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    this.vertTexture.generateMipmaps = false;
+    this.vertTexture.minFilter = THREE.LinearFilter;
+    this.vertTexture.magFilter = THREE.LinearFilter;
 
     // Current mode indices
     this.mainModeIndex = 0;
@@ -51,7 +53,15 @@ export class AnimatedScreenManager {
     // Chat log state
     this.chatScrollY = 0;
 
+    // 20 FPS throttle interval to avoid 60fps GPU PCIe bus overload
+    this.screenUpdateInterval = 1 / 20;
+    this.timeSinceLastScreenUpdate = this.screenUpdateInterval;
+
     this._initTerminal();
+    this._renderMainScreen(0);
+    this._renderVertScreen(0);
+    this.mainTexture.needsUpdate = true;
+    this.vertTexture.needsUpdate = true;
   }
 
   get mainMode() { return MAIN_MODES[this.mainModeIndex]; }
@@ -61,12 +71,14 @@ export class AnimatedScreenManager {
     this.mainModeIndex = (this.mainModeIndex + 1) % MAIN_MODES.length;
     this.typingOffset = 0;
     this._initTerminal();
+    this.timeSinceLastScreenUpdate = this.screenUpdateInterval; // Force immediate render
     return this.mainMode;
   }
 
   cycleVertMode() {
     this.vertModeIndex = (this.vertModeIndex + 1) % VERT_MODES.length;
     this.chatScrollY = 0;
+    this.timeSinceLastScreenUpdate = this.screenUpdateInterval; // Force immediate render
     return this.vertMode;
   }
 
@@ -82,14 +94,21 @@ export class AnimatedScreenManager {
    */
   update(delta) {
     this.elapsed += delta;
-    this.cursorBlink = Math.floor(this.elapsed * 2) % 2 === 0;
-    this.typingOffset += delta * 12;
+    this.timeSinceLastScreenUpdate += delta;
 
-    this._renderMainScreen(delta);
-    this._renderVertScreen(delta);
+    if (this.timeSinceLastScreenUpdate >= this.screenUpdateInterval) {
+      const step = this.timeSinceLastScreenUpdate;
+      this.timeSinceLastScreenUpdate = 0;
 
-    this.mainTexture.needsUpdate = true;
-    this.vertTexture.needsUpdate = true;
+      this.cursorBlink = Math.floor(this.elapsed * 2) % 2 === 0;
+      this.typingOffset += step * 12;
+
+      this._renderMainScreen(step);
+      this._renderVertScreen(step);
+
+      this.mainTexture.needsUpdate = true;
+      this.vertTexture.needsUpdate = true;
+    }
   }
 
   // ==========================================================================

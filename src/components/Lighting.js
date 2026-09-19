@@ -32,7 +32,7 @@ export function createLighting(scene) {
   // 4. Desk Light Bar Downward Spotlight (Warm focused desk illumination)
   const deskLight = new THREE.PointLight('#ffaa44', 2.8, 3.8, 1.1);
   deskLight.position.set(-0.75, 2.35, -2.75);
-  deskLight.castShadow = true;
+  deskLight.castShadow = false;
   lightsGroup.add(deskLight);
 
   // 5. Gaming PC Neon Glow (RGB Fan Light from Glass Case)
