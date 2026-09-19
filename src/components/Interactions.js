@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { soundEngine } from '../utils/soundEngine.js';
 
-export function setupInteractions(scene, camera, controls, lighting, furniture, pcSetup, deskSetup, rcCar, fpsController) {
+export function setupInteractions(scene, camera, controls, lighting, furniture, pcSetup, deskSetup, rcCar, fpsController, roomPet) {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
@@ -306,6 +306,14 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
       soundEngine.playSwitchClick();
       rcCar.setActive(true);
       showQuickNotification('🏎️ Drive RC Rover with [W/A/S/D] or [Arrows]!');
+    });
+  }
+
+  // 8. Cyber Cat Companion Interactive Hotspot
+  if (roomPet && roomPet.group) {
+    registerItem(roomPet.group, '🐱 Cyber Cat (Click to Pet)', 'pet', () => {
+      roomPet.pet();
+      showQuickNotification('😻 Pet the Cyber Cat! *purrrrr*');
     });
   }
 

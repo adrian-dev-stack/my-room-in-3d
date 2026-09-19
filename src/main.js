@@ -33,6 +33,7 @@ import { setupInteractions } from './components/Interactions.js';
 import { createRCCar } from './components/RCCar.js';
 import { FirstPersonController } from './components/FirstPersonController.js';
 import { SpatialAudioSystem } from './utils/spatialAudio.js';
+import { createRoomPet } from './components/RoomPet.js';
 import { soundEngine } from './utils/soundEngine.js';
 import { WeatherSync } from './utils/weatherSync.js';
 
@@ -131,6 +132,9 @@ window.addEventListener('fps-mode-change', (e) => {
   controls.enabled = !e.detail.active;
 });
 
+// Virtual Cyber Cat Companion
+const roomPet = createRoomPet(scene, soundEngine);
+
 // Real-Time Weather & Time Sync
 const weatherSync = new WeatherSync();
 weatherSync.onUpdate((weatherData) => {
@@ -176,7 +180,8 @@ interactionsHandler = setupInteractions(
   pcSetup,
   deskSetup,
   rcCar,
-  fpsController
+  fpsController,
+  roomPet
 );
 
 // RC Drive Mode Button Listener
@@ -242,6 +247,7 @@ function animate() {
   pcSetup.update(delta);
   furniture.update(delta);
   rcCar.update(delta);
+  roomPet.update(delta, rcCar);
 
   if (fpsController.active) {
     fpsController.update(delta);
