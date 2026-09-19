@@ -908,3 +908,36 @@ a:focus-visible,
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* WebGL Capability Error Fallback Card */
+.webgl-fallback-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 16px;
+  padding: 36px 32px;
+  max-width: 460px;
+  width: 90%;
+  text-align: center;
+  box-shadow: var(--glass-shadow);
+}
+
+.webgl-fallback-content h2 {
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+  color: var(--accent-rose);
+  font-weight: 700;
+}
+
+.webgl-fallback-content p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}

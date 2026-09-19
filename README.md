@@ -35,16 +35,22 @@ An interactive, 3D isometric room inspired by Bruno Simon's iconic Three.js port
 
 ---
 
-## 🛠️ Local Development
+## 🛠️ Local Development & Testing
 
 To run the project locally on your machine:
 
 ```bash
-# 1. Navigate to the project directory
-cd Desktop/my-room-in-3d
+# 1. Install dependencies
+npm install
 
 # 2. Start the local Vite development server
 npm run dev
+
+# 3. Run automated unit test suite (Vitest)
+npm test
+
+# 4. Build optimized production assets
+npm run build
 ```
 
 Open your browser at `http://localhost:5173`.

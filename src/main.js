@@ -5,6 +5,23 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import Stats from 'stats.js';
+import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
+
+// 0. Hardware Capability Check
+if (!WebGL.isWebGLAvailable()) {
+  const warning = document.createElement('div');
+  warning.className = 'webgl-fallback-card';
+  warning.setAttribute('role', 'alert');
+  warning.innerHTML = `
+    <div class="webgl-fallback-content">
+      <h2>⚠️ WebGL Not Supported or Disabled</h2>
+      <p>Your graphics card or browser does not support hardware-accelerated 3D WebGL, or it is currently disabled.</p>
+      <p>Please check your browser settings or ensure hardware acceleration is enabled in your system preferences.</p>
+    </div>
+  `;
+  document.body.appendChild(warning);
+  throw new Error('WebGL is not supported in this environment');
+}
 
 import { createRoom } from './components/Room.js';
 import { createDeskSetup } from './components/DeskSetup.js';
