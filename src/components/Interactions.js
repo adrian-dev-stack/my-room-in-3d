@@ -64,16 +64,153 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     }, 1500);
   }
 
-  // 1. Main Monitor — Click to cycle screen modes
+  // 1. Main Monitor — Click to open interactive terminal & arcade launcher
   const monitor = scene.getObjectByName('MainMonitor');
   if (monitor) {
-    registerItem(monitor, 'Workstation Monitor — Click to switch', 'monitor', () => {
+    registerItem(monitor, 'Workstation Monitor (Click to Play or Open Terminal)', 'monitor', () => {
       soundEngine.playSwitchClick();
-      if (deskSetup && deskSetup.screenManager) {
-        const newMode = deskSetup.screenManager.cycleMainMode();
-        showScreenToast('🖥️', newMode);
-      }
+      openModal('🖥️ Workstation OS v2.0', `
+        <div class="terminal-header">&gt; system.interactive_shell()</div>
+        <p style="font-size: 13px; color: #94a3b8; margin: 8px 0 14px;">Launch the live Cyber Runner arcade game directly on the 3D monitor or run terminal commands below.</p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
+          <button class="modal-btn highlight-btn" id="btn-play-arcade">🎮 Play Cyber Runner</button>
+          <button class="modal-btn" id="btn-cycle-screen">🔄 Cycle Screen Mode</button>
+        </div>
+        <div class="terminal-cli-container">
+          <div class="cli-output-log" id="cli-output-log">
+            <div class="cli-line info">Type <span class="cli-cmd">help</span> for commands, or <span class="cli-cmd">game</span> to play Cyber Runner.</div>
+          </div>
+          <div class="cli-input-row">
+            <span class="cli-prompt">guest@room:~$</span>
+            <input type="text" id="terminal-cli-input" class="terminal-cli-input" placeholder="type a command..." autocomplete="off" />
+          </div>
+        </div>
+      `);
+
+      // Wire Play Arcade button
+      document.getElementById('btn-play-arcade')?.addEventListener('click', () => {
+        closeModal();
+        startArcadeMode();
+      });
+
+      // Wire Cycle Screen Mode button
+      document.getElementById('btn-cycle-screen')?.addEventListener('click', () => {
+        soundEngine.playSwitchClick();
+        if (deskSetup && deskSetup.screenManager) {
+          deskSetup.screenManager.setArcadeMode(false);
+          const newMode = deskSetup.screenManager.cycleMainMode();
+          showScreenToast('🖥️', newMode);
+        }
+      });
+
+      // Wire CLI Input
+      const cliInput = document.getElementById('terminal-cli-input');
+      const cliLog = document.getElementById('cli-output-log');
+      cliInput?.focus();
+
+      cliInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const cmd = cliInput.value.trim().toLowerCase();
+          cliInput.value = '';
+          handleCliCommand(cmd, cliLog);
+        }
+      });
     });
+  }
+
+  // Helper to start arcade mode
+  function startArcadeMode() {
+    if (deskSetup && deskSetup.screenManager) {
+      deskSetup.screenManager.setArcadeMode(true);
+      setCameraPreset('Desk Setup');
+      showArcadeHud(true);
+      showQuickNotification('🎮 Cyber Runner Started! Press Space to Play, Esc to Exit.');
+    }
+  }
+
+  // CLI Command processor
+  function handleCliCommand(cmd, logEl) {
+    if (!logEl) return;
+    soundEngine.playMechanicalKey('enter');
+
+    const append = (html) => {
+      const line = document.createElement('div');
+      line.className = 'cli-line';
+      line.innerHTML = html;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    };
+
+    append(`<span class="cli-prompt-hist">guest@room:~$</span> ${cmd}`);
+
+    if (cmd === 'help') {
+      append(`Available commands:
+        <br>• <span class="cli-cmd">skills</span> — View engineering stack
+        <br>• <span class="cli-cmd">projects</span> — View portfolio projects
+        <br>• <span class="cli-cmd">game</span> — Play Cyber Runner on 3D monitor
+        <br>• <span class="cli-cmd">weather</span> — Sync current local weather
+        <br>• <span class="cli-cmd">music</span> — Toggle Lo-Fi Radio
+        <br>• <span class="cli-cmd">matrix</span> — Digital green rain test
+        <br>• <span class="cli-cmd">clear</span> — Clear terminal window`);
+    } else if (cmd === 'skills') {
+      append(`Engineering Skills:
+        <br>• <strong>Core:</strong> JavaScript (ESNext), TypeScript, Three.js, WebGL, HTML5 Canvas
+        <br>• <strong>Styling:</strong> Vanilla CSS3, Glassmorphism, Responsive UI, Post-Processing Bloom
+        <br>• <strong>Audio:</strong> Web Audio API (Generative synths, chord progressions)
+        <br>• <strong>Testing:</strong> Vitest, CI/CD GitHub Actions`);
+    } else if (cmd === 'projects') {
+      append(`Featured Projects:
+        <br>• <strong>My Room in 3D:</strong> Isometric interactive portfolio with Bruno Simon inspiration
+        <br>• <strong>FiveM Framework:</strong> Custom low-latency server scripts & roleplay dashboards
+        <br>• <strong>Procedural Lo-Fi Synthesizer:</strong> Zero-dependency Web Audio chord generator`);
+    } else if (cmd === 'game') {
+      closeModal();
+      startArcadeMode();
+    } else if (cmd === 'weather') {
+      append(`Weather Status: Connected & synchronized in real-time with local time.`);
+    } else if (cmd === 'music') {
+      soundEngine.toggleMusic();
+      const cur = soundEngine.getCurrentChannel();
+      append(`Radio: ${soundEngine.isPlayingMusic ? 'Playing ' + cur.name : 'Paused'}`);
+    } else if (cmd === 'matrix') {
+      append(`<span style="color: #22c55e;">Wake up, Neo... The Matrix has you. Follow the white rabbit. 🐇</span>`);
+    } else if (cmd === 'clear') {
+      logEl.innerHTML = '';
+    } else if (cmd) {
+      append(`<span style="color: #f87171;">Command not found: "${cmd}". Type <span class="cli-cmd">help</span> for a list.</span>`);
+    }
+  }
+
+  // Arcade HUD
+  let arcadeHud = document.getElementById('arcade-hud');
+  if (!arcadeHud && typeof document !== 'undefined') {
+    arcadeHud = document.createElement('div');
+    arcadeHud.id = 'arcade-hud';
+    arcadeHud.className = 'arcade-hud hidden';
+    arcadeHud.innerHTML = `
+      <div class="arcade-hud-pill">
+        <span class="arcade-hud-icon">🕹️</span>
+        <span class="arcade-hud-title">CYBER RUNNER</span>
+        <div class="arcade-hud-keys">
+          <span class="hud-key">W/A/S/D</span> Move
+          <span class="hud-key">Space</span> Start / Restart
+        </div>
+        <button class="arcade-hud-exit" id="arcade-exit-btn" title="Exit Game (Esc)">✕ Exit</button>
+      </div>
+    `;
+    document.body.appendChild(arcadeHud);
+
+    document.getElementById('arcade-exit-btn')?.addEventListener('click', () => {
+      showArcadeHud(false);
+      if (deskSetup?.screenManager) deskSetup.screenManager.setArcadeMode(false);
+      resetCameraView();
+    });
+  }
+
+  function showArcadeHud(visible) {
+    if (!arcadeHud) return;
+    if (visible) arcadeHud.classList.remove('hidden');
+    else arcadeHud.classList.add('hidden');
   }
 
   // 1b. Vertical Monitor — Click to cycle screen modes
@@ -174,6 +311,21 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
   // Real-time physical keyboard typing listener
   window.addEventListener('keydown', (e) => {
+    // If arcade mode is running, route inputs directly to arcade game
+    if (deskSetup && deskSetup.screenManager && deskSetup.screenManager.isArcadeMode) {
+      if (e.code === 'Escape') {
+        deskSetup.screenManager.setArcadeMode(false);
+        showArcadeHud(false);
+        resetCameraView();
+        return;
+      }
+      deskSetup.screenManager.handleArcadeKey(e.code);
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+        e.preventDefault();
+      }
+      return;
+    }
+
     // Ignore input fields if user is typing in a form
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 

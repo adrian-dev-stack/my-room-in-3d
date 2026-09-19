@@ -2,12 +2,12 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { AnimatedScreenManager } from '../utils/animatedScreens.js';
 
-export function createDeskSetup() {
+export function createDeskSetup(soundEngine = null) {
   const deskGroup = new THREE.Group();
   deskGroup.name = 'WorkstationDesk';
 
   // Animated screen manager for live-updating monitor content
-  const screenManager = new AnimatedScreenManager();
+  const screenManager = new AnimatedScreenManager(soundEngine);
 
   // Materials matching photo 3
   const darkWoodDeskMat = new THREE.MeshStandardMaterial({

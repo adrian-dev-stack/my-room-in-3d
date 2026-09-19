@@ -103,7 +103,7 @@ if (statsContainer) {
 const room = createRoom();
 scene.add(room.group);
 
-const deskSetup = createDeskSetup();
+const deskSetup = createDeskSetup(soundEngine);
 scene.add(deskSetup.group);
 
 const pcSetup = createPCSetup();

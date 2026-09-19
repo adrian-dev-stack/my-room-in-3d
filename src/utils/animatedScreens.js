@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ArcadeMiniGame } from './arcadeMiniGame.js';
 
 /**
  * AnimatedScreenManager
@@ -14,7 +15,11 @@ export const MAIN_MODES = ['vscode', 'terminal', 'fivem', 'portfolio'];
 export const VERT_MODES = ['discord', 'spotify', 'chat-log'];
 
 export class AnimatedScreenManager {
-  constructor() {
+  constructor(soundEngine = null) {
+    this.soundEngine = soundEngine;
+    this.arcadeGame = new ArcadeMiniGame(soundEngine);
+    this.isArcadeMode = false;
+
     // Main monitor canvas (landscape 16:9)
     this.mainCanvas = document.createElement('canvas');
     this.mainCanvas.width = 2048;
@@ -82,6 +87,24 @@ export class AnimatedScreenManager {
     return this.vertMode;
   }
 
+  setArcadeMode(enabled) {
+    this.isArcadeMode = enabled;
+    if (this.arcadeGame) {
+      this.arcadeGame.active = enabled;
+      if (enabled) {
+        this.arcadeGame.reset();
+      }
+    }
+    this.timeSinceLastScreenUpdate = this.screenUpdateInterval;
+  }
+
+  handleArcadeKey(key) {
+    if (this.isArcadeMode && this.arcadeGame) {
+      this.arcadeGame.handleKeyDown(key);
+      this.timeSinceLastScreenUpdate = this.screenUpdateInterval;
+    }
+  }
+
   _initTerminal() {
     this.termLines = [];
     this.termLineIndex = 0;
@@ -116,6 +139,11 @@ export class AnimatedScreenManager {
   // ==========================================================================
 
   _renderMainScreen(delta) {
+    if (this.isArcadeMode && this.arcadeGame) {
+      this.arcadeGame.update(delta);
+      this.arcadeGame.render(this.mainCtx, 2048, 1152);
+      return;
+    }
     const mode = this.mainMode;
     if (mode === 'vscode') this._drawVSCode();
     else if (mode === 'terminal') this._drawTerminal(delta);
