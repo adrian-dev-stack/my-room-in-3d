@@ -161,6 +161,9 @@ export function createRoom() {
 
   return {
     group: roomGroup,
-    animatedWindow
+    animatedWindow,
+    floorMaterial,
+    wallMaterial,
+    floorMesh
   };
 }

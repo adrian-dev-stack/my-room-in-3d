@@ -34,6 +34,7 @@ import { createRCCar } from './components/RCCar.js';
 import { FirstPersonController } from './components/FirstPersonController.js';
 import { SpatialAudioSystem } from './utils/spatialAudio.js';
 import { createRoomPet } from './components/RoomPet.js';
+import { RoomCustomizer } from './components/RoomCustomizer.js';
 import { soundEngine } from './utils/soundEngine.js';
 import { WeatherSync } from './utils/weatherSync.js';
 
@@ -135,6 +136,9 @@ window.addEventListener('fps-mode-change', (e) => {
 // Virtual Cyber Cat Companion
 const roomPet = createRoomPet(scene, soundEngine);
 
+// Interactive Room Aesthetic Customizer & Custom Neon Sign
+const customizer = new RoomCustomizer(room, soundEngine);
+
 // Real-Time Weather & Time Sync
 const weatherSync = new WeatherSync();
 weatherSync.onUpdate((weatherData) => {
@@ -190,6 +194,13 @@ btnRcDrive?.addEventListener('click', () => {
   soundEngine.playSwitchClick();
   const willBeActive = !rcCar.state.active;
   rcCar.setActive(willBeActive);
+});
+
+// Room Customizer Drawer Button Listener
+const btnCustomizer = document.getElementById('btn-customizer');
+btnCustomizer?.addEventListener('click', () => {
+  soundEngine.playSwitchClick();
+  customizer.toggleDrawer();
 });
 
 // Atmosphere Preset Pills UI Event Listeners
