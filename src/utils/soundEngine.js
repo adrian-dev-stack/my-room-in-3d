@@ -33,6 +33,12 @@ class SoundEngine {
     this.rainFilter = null;
     this.rainNoiseSource = null;
 
+    // RC Engine audio nodes
+    this.engineGain = null;
+    this.engineOsc = null;
+    this.engineFilter = null;
+    this.isEngineRunning = false;
+
     this.channels = [
       {
         name: 'Lo-Fi Chill Beats',
@@ -363,6 +369,206 @@ class SoundEngine {
 
     osc.start(t);
     osc.stop(t + 0.13);
+  }
+
+  /**
+   * Procedural RC Buggy / Car Engine Synth
+   */
+  setEngineSound(isRunning, speedRatio = 0.0) {
+    this.init();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    if (isRunning && !this.isMuted) {
+      if (!this.engineOsc) {
+        this.engineOsc = this.ctx.createOscillator();
+        this.engineOsc.type = 'sawtooth';
+
+        this.engineFilter = this.ctx.createBiquadFilter();
+        this.engineFilter.type = 'lowpass';
+        this.engineFilter.frequency.setValueAtTime(220, t);
+        this.engineFilter.Q.setValueAtTime(2.0, t);
+
+        this.engineGain = this.ctx.createGain();
+        this.engineGain.gain.setValueAtTime(0.0001, t);
+
+        this.engineOsc.connect(this.engineFilter);
+        this.engineFilter.connect(this.engineGain);
+        this.engineGain.connect(this.masterGain);
+
+        this.engineOsc.start();
+        this.isEngineRunning = true;
+      }
+
+      // Modulate frequency and filter with speed ratio (0 to 1+)
+      const baseFreq = 55 + Math.min(speedRatio, 1.5) * 95;
+      const filterFreq = 180 + Math.min(speedRatio, 1.5) * 550;
+      const targetGain = 0.05 + Math.min(speedRatio, 1.0) * 0.06;
+
+      this.engineOsc.frequency.cancelScheduledValues(t);
+      this.engineOsc.frequency.linearRampToValueAtTime(baseFreq, t + 0.05);
+
+      this.engineFilter.frequency.cancelScheduledValues(t);
+      this.engineFilter.frequency.linearRampToValueAtTime(filterFreq, t + 0.05);
+
+      this.engineGain.gain.cancelScheduledValues(t);
+      this.engineGain.gain.linearRampToValueAtTime(targetGain, t + 0.05);
+    } else if (this.engineGain) {
+      this.engineGain.gain.cancelScheduledValues(t);
+      this.engineGain.gain.linearRampToValueAtTime(0.0001, t + 0.2);
+    }
+  }
+
+  /**
+   * Play tire drift / skid noise burst
+   */
+  playTireSkid() {
+    this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(800 + Math.random() * 200, t);
+    osc.frequency.exponentialRampToValueAtTime(120, t + 0.12);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(950, t);
+    filter.Q.setValueAtTime(4.0, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.08, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.13);
+  }
+
+  /**
+   * Play playful dual-tone car horn (F4 + A4)
+   */
+  playCarHorn() {
+    this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    const t = this.ctx.currentTime;
+    [349.23, 440.0].forEach((freq) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, t);
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1400, t);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(t);
+      osc.stop(t + 0.26);
+    });
+  }
+
+  /**
+   * Play retro arcade 8-bit synth sound (jump, point, crash, start)
+   */
+  playArcadeBeep(type = 'point') {
+    this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    if (type === 'point') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(587.33, t); // D5
+      osc.frequency.setValueAtTime(880.0, t + 0.06); // A5
+      gain.gain.setValueAtTime(0.15, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+      osc.start(t);
+      osc.stop(t + 0.16);
+    } else if (type === 'jump') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(220, t);
+      osc.frequency.exponentialRampToValueAtTime(880, t + 0.12);
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+      osc.start(t);
+      osc.stop(t + 0.15);
+    } else if (type === 'crash') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(240, t);
+      osc.frequency.exponentialRampToValueAtTime(40, t + 0.3);
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+      osc.start(t);
+      osc.stop(t + 0.33);
+    }
+  }
+
+  /**
+   * Play wood floor footstep for first-person mode
+   */
+  playFootstep() {
+    this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    const freq = 90 + Math.random() * 30;
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.exponentialRampToValueAtTime(40, t + 0.05);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.08, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.07);
+  }
+
+  /**
+   * Play cute soft cat purr / chirp
+   */
+  playPurr() {
+    this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(320, t);
+    osc.frequency.linearRampToValueAtTime(480, t + 0.08);
+    osc.frequency.linearRampToValueAtTime(640, t + 0.18);
+    osc.frequency.exponentialRampToValueAtTime(200, t + 0.35);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.linearRampToValueAtTime(0.12, t + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.36);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.38);
   }
 
   /**

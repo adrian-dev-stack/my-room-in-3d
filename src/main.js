@@ -30,6 +30,7 @@ import { createFurniture } from './components/Furniture.js';
 import { createLighting } from './components/Lighting.js';
 import { createGUI } from './components/GUI.js';
 import { setupInteractions } from './components/Interactions.js';
+import { createRCCar } from './components/RCCar.js';
 import { soundEngine } from './utils/soundEngine.js';
 import { WeatherSync } from './utils/weatherSync.js';
 
@@ -114,6 +115,9 @@ scene.add(furniture.group);
 
 const lighting = createLighting(scene);
 
+// RC Cyber Rover
+const rcCar = createRCCar(scene, soundEngine);
+
 // Real-Time Weather & Time Sync
 const weatherSync = new WeatherSync();
 weatherSync.onUpdate((weatherData) => {
@@ -157,8 +161,17 @@ interactionsHandler = setupInteractions(
   lighting,
   furniture,
   pcSetup,
-  deskSetup
+  deskSetup,
+  rcCar
 );
+
+// RC Drive Mode Button Listener
+const btnRcDrive = document.getElementById('btn-rc-drive');
+btnRcDrive?.addEventListener('click', () => {
+  soundEngine.playSwitchClick();
+  const willBeActive = !rcCar.state.active;
+  rcCar.setActive(willBeActive);
+});
 
 // Atmosphere Preset Pills UI Event Listeners
 const presetPills = document.querySelectorAll('.preset-pill');
@@ -214,6 +227,12 @@ function animate() {
 
   pcSetup.update(delta);
   furniture.update(delta);
+  rcCar.update(delta);
+
+  if (rcCar.state.active) {
+    controls.target.lerp(new THREE.Vector3(rcCar.state.posX, rcCar.state.posY + 0.3, rcCar.state.posZ), 0.08);
+  }
+
   controls.update();
 
   // Update animated monitor screens

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { soundEngine } from '../utils/soundEngine.js';
 
-export function setupInteractions(scene, camera, controls, lighting, furniture, pcSetup, deskSetup) {
+export function setupInteractions(scene, camera, controls, lighting, furniture, pcSetup, deskSetup, rcCar) {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
@@ -162,6 +162,15 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
   if (spkLeft) registerItem(spkLeft, 'Studio Speaker (Click to Toggle Lo-Fi Radio)', 'speaker', onSpeakerClick);
   if (spkRight) registerItem(spkRight, 'Studio Speaker (Click to Toggle Lo-Fi Radio)', 'speaker', onSpeakerClick);
+
+  // 7. RC Cyber Rover Interactive Hotspot
+  if (rcCar && rcCar.group) {
+    registerItem(rcCar.group, '🏎️ RC Cyber Rover (Click to Drive)', 'rc-car', () => {
+      soundEngine.playSwitchClick();
+      rcCar.setActive(true);
+      showQuickNotification('🏎️ Drive RC Rover with [W/A/S/D] or [Arrows]!');
+    });
+  }
 
   // Real-time physical keyboard typing listener
   window.addEventListener('keydown', (e) => {
