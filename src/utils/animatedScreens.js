@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ArcadeMiniGame } from './arcadeMiniGame.js';
+import { RhythmBeatGame } from './rhythmBeatGame.js';
 
 /**
  * AnimatedScreenManager
@@ -17,8 +18,10 @@ export const VERT_MODES = ['discord', 'spotify', 'chat-log'];
 export class AnimatedScreenManager {
   constructor(soundEngine = null) {
     this.soundEngine = soundEngine;
-    this.arcadeGame = new ArcadeMiniGame(soundEngine);
+    this.arcadeGame   = new ArcadeMiniGame(soundEngine);
+    this.rhythmGame   = new RhythmBeatGame(soundEngine);
     this.isArcadeMode = false;
+    this.isRhythmMode = false;
 
     // Main monitor canvas (landscape 16:9)
     this.mainCanvas = document.createElement('canvas');
@@ -89,6 +92,7 @@ export class AnimatedScreenManager {
 
   setArcadeMode(enabled) {
     this.isArcadeMode = enabled;
+    if (enabled) this.isRhythmMode = false; // mutually exclusive
     if (this.arcadeGame) {
       this.arcadeGame.active = enabled;
       if (enabled) {
@@ -98,9 +102,25 @@ export class AnimatedScreenManager {
     this.timeSinceLastScreenUpdate = this.screenUpdateInterval;
   }
 
+  setRhythmMode(enabled) {
+    this.isRhythmMode = enabled;
+    if (enabled) this.isArcadeMode = false; // mutually exclusive
+    if (this.rhythmGame) {
+      this.rhythmGame.active = enabled;
+    }
+    this.timeSinceLastScreenUpdate = this.screenUpdateInterval;
+  }
+
   handleArcadeKey(key) {
     if (this.isArcadeMode && this.arcadeGame) {
       this.arcadeGame.handleKeyDown(key);
+      this.timeSinceLastScreenUpdate = this.screenUpdateInterval;
+    }
+  }
+
+  handleRhythmKey(key) {
+    if (this.isRhythmMode && this.rhythmGame) {
+      this.rhythmGame.handleKeyDown(key);
       this.timeSinceLastScreenUpdate = this.screenUpdateInterval;
     }
   }
@@ -139,6 +159,11 @@ export class AnimatedScreenManager {
   // ==========================================================================
 
   _renderMainScreen(delta) {
+    if (this.isRhythmMode && this.rhythmGame) {
+      this.rhythmGame.update(delta);
+      this.rhythmGame.render(this.mainCtx, 2048, 1152);
+      return;
+    }
     if (this.isArcadeMode && this.arcadeGame) {
       this.arcadeGame.update(delta);
       this.arcadeGame.render(this.mainCtx, 2048, 1152);

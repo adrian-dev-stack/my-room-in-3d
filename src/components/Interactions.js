@@ -71,14 +71,15 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
       soundEngine.playSwitchClick();
       openModal('🖥️ Workstation OS v2.0', `
         <div class="terminal-header">&gt; system.interactive_shell()</div>
-        <p style="font-size: 13px; color: #94a3b8; margin: 8px 0 14px;">Launch the live Cyber Runner arcade game directly on the 3D monitor or run terminal commands below.</p>
+        <p style="font-size: 13px; color: #94a3b8; margin: 8px 0 14px;">Launch the live Cyber Runner arcade game or Rhythm Beat directly on the 3D monitor, or run terminal commands below.</p>
         <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
           <button class="modal-btn highlight-btn" id="btn-play-arcade">🎮 Play Cyber Runner</button>
+          <button class="modal-btn highlight-btn" id="btn-play-rhythm" style="background: linear-gradient(135deg,#7c3aed,#a855f7);">🎵 Rhythm Beat</button>
           <button class="modal-btn" id="btn-cycle-screen">🔄 Cycle Screen Mode</button>
         </div>
         <div class="terminal-cli-container">
           <div class="cli-output-log" id="cli-output-log">
-            <div class="cli-line info">Type <span class="cli-cmd">help</span> for commands, or <span class="cli-cmd">game</span> to play Cyber Runner.</div>
+            <div class="cli-line info">Type <span class="cli-cmd">help</span> for commands, or <span class="cli-cmd">game</span> / <span class="cli-cmd">rhythm</span> to play.</div>
           </div>
           <div class="cli-input-row">
             <span class="cli-prompt">guest@room:~$</span>
@@ -91,6 +92,12 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
       document.getElementById('btn-play-arcade')?.addEventListener('click', () => {
         closeModal();
         startArcadeMode();
+      });
+
+      // Wire Play Rhythm Beat button
+      document.getElementById('btn-play-rhythm')?.addEventListener('click', () => {
+        closeModal();
+        startRhythmMode();
       });
 
       // Wire Cycle Screen Mode button
@@ -128,6 +135,16 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     }
   }
 
+  // Helper to start rhythm mode
+  function startRhythmMode() {
+    if (deskSetup && deskSetup.screenManager) {
+      deskSetup.screenManager.setRhythmMode(true);
+      setCameraPreset('Desk Setup');
+      showRhythmHud(true);
+      showQuickNotification('🎵 Rhythm Beat! Press [A][S][D][F] to hit notes, Esc to Exit.');
+    }
+  }
+
   // CLI Command processor
   function handleCliCommand(cmd, logEl) {
     if (!logEl) return;
@@ -148,6 +165,7 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
         <br>• <span class="cli-cmd">skills</span> — View engineering stack
         <br>• <span class="cli-cmd">projects</span> — View portfolio projects
         <br>• <span class="cli-cmd">game</span> — Play Cyber Runner on 3D monitor
+        <br>• <span class="cli-cmd">rhythm</span> — Play Rhythm Beat (A/S/D/F lanes)
         <br>• <span class="cli-cmd">weather</span> — Sync current local weather
         <br>• <span class="cli-cmd">music</span> — Toggle Lo-Fi Radio
         <br>• <span class="cli-cmd">matrix</span> — Digital green rain test
@@ -166,6 +184,9 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     } else if (cmd === 'game') {
       closeModal();
       startArcadeMode();
+    } else if (cmd === 'rhythm') {
+      closeModal();
+      startRhythmMode();
     } else if (cmd === 'weather') {
       append(`Weather Status: Connected & synchronized in real-time with local time.`);
     } else if (cmd === 'music') {
@@ -211,6 +232,41 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     if (!arcadeHud) return;
     if (visible) arcadeHud.classList.remove('hidden');
     else arcadeHud.classList.add('hidden');
+  }
+
+  // Rhythm HUD
+  let rhythmHud = document.getElementById('rhythm-hud');
+  if (!rhythmHud && typeof document !== 'undefined') {
+    rhythmHud = document.createElement('div');
+    rhythmHud.id = 'rhythm-hud';
+    rhythmHud.className = 'arcade-hud hidden';
+    rhythmHud.innerHTML = `
+      <div class="arcade-hud-pill" style="border-color: #a855f7; box-shadow: 0 0 20px rgba(168,85,247,0.4);">
+        <span class="arcade-hud-icon">🎵</span>
+        <span class="arcade-hud-title" style="color: #a855f7;">RHYTHM BEAT</span>
+        <div class="arcade-hud-keys">
+          <span class="hud-key">A</span>
+          <span class="hud-key">S</span>
+          <span class="hud-key">D</span>
+          <span class="hud-key">F</span>
+          Hit Lanes
+        </div>
+        <button class="arcade-hud-exit" id="rhythm-exit-btn" title="Exit Game (Esc)">✕ Exit</button>
+      </div>
+    `;
+    document.body.appendChild(rhythmHud);
+
+    document.getElementById('rhythm-exit-btn')?.addEventListener('click', () => {
+      showRhythmHud(false);
+      if (deskSetup?.screenManager) deskSetup.screenManager.setRhythmMode(false);
+      resetCameraView();
+    });
+  }
+
+  function showRhythmHud(visible) {
+    if (!rhythmHud) return;
+    if (visible) rhythmHud.classList.remove('hidden');
+    else rhythmHud.classList.add('hidden');
   }
 
   // 1b. Vertical Monitor — Click to cycle screen modes
@@ -319,6 +375,21 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
   // Real-time physical keyboard typing listener
   window.addEventListener('keydown', (e) => {
+    // If rhythm mode is running, route inputs to rhythm game
+    if (deskSetup && deskSetup.screenManager && deskSetup.screenManager.isRhythmMode) {
+      if (e.code === 'Escape') {
+        deskSetup.screenManager.setRhythmMode(false);
+        showRhythmHud(false);
+        resetCameraView();
+        return;
+      }
+      deskSetup.screenManager.handleRhythmKey(e.code);
+      if (['KeyA', 'KeyS', 'KeyD', 'KeyF', 'Space', 'Enter'].includes(e.code)) {
+        e.preventDefault();
+      }
+      return;
+    }
+
     // If arcade mode is running, route inputs directly to arcade game
     if (deskSetup && deskSetup.screenManager && deskSetup.screenManager.isArcadeMode) {
       if (e.code === 'Escape') {
