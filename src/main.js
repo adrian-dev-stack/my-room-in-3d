@@ -42,11 +42,14 @@ import { DustParticles } from './utils/dustParticles.js';
 // 1. Scene Setup
 const canvas = document.querySelector('#webgl');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#040508');
+scene.background = new THREE.Color('#030407');
+
+// ── Enhanced Depth Fog ──────────────────────────────────────────────────────
+scene.fog = new THREE.FogExp2('#06050d', 0.028);
 
 // 2. Camera Setup (Isometric Perspective)
 const camera = new THREE.PerspectiveCamera(
-  32,
+  30,
   window.innerWidth / window.innerHeight,
   0.1,
   100
@@ -56,7 +59,7 @@ camera.position.set(7.5, 6.5, 7.5);
 // 3. OrbitControls
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
-controls.dampingFactor = 0.05;
+controls.dampingFactor = 0.055;
 controls.target.set(0, 1.2, 0);
 controls.maxPolarAngle = Math.PI / 2 - 0.04;
 controls.minDistance = 3.5;
@@ -74,17 +77,17 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.35;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-// 5. Post-Processing (UnrealBloom)
+// 5. Post-Processing — Enhanced Bloom
 const renderPass = new RenderPass(scene, camera);
 
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.35,
-  0.4,
-  0.88
+  0.52,   // strength (was 0.35)
+  0.55,   // radius
+  0.82    // threshold (lower = more bloom)
 );
 
 const outputPass = new OutputPass();
@@ -104,7 +107,7 @@ if (statsContainer) {
   stats.dom.style.position = 'relative';
 }
 
-// 7. Build Modernized 3D Room Environment
+// 7. Build 3D Room Environment
 const room = createRoom();
 scene.add(room.group);
 
@@ -137,10 +140,10 @@ window.addEventListener('fps-mode-change', (e) => {
 // Virtual Cyber Cat Companion
 const roomPet = createRoomPet(scene, soundEngine);
 
-// Interactive Room Aesthetic Customizer & Custom Neon Sign
+// Room Customizer
 const customizer = new RoomCustomizer(room, soundEngine);
 
-// Ambient Floating Dust Particles
+// ── Ambient Dust Particles ──────────────────────────────────────────────────
 const dustParticles = new DustParticles(scene);
 
 // Real-Time Weather & Time Sync
@@ -167,7 +170,7 @@ const { gui } = createGUI(lighting, furniture, pcSetup, (preset) => {
   }
 });
 
-// Hide debug lil-gui by default so the room is clean (toggleable via ⚙️ Settings button)
+// Hide debug lil-gui by default
 if (gui && gui.domElement) {
   gui.domElement.classList.add('gui-hidden');
 }
@@ -175,7 +178,7 @@ if (gui && gui.domElement) {
 // Bloom controls in GUI
 const bloomFolder = gui.addFolder('bloom / effects');
 bloomFolder.close();
-bloomFolder.add(bloomPass, 'strength', 0, 1.5, 0.05).name('bloomStrength');
+bloomFolder.add(bloomPass, 'strength', 0, 2.0, 0.05).name('bloomStrength');
 bloomFolder.add(bloomPass, 'radius', 0, 1.0, 0.05).name('bloomRadius');
 bloomFolder.add(bloomPass, 'threshold', 0.5, 1.0, 0.02).name('bloomThreshold');
 
@@ -192,7 +195,18 @@ interactionsHandler = setupInteractions(
   roomPet
 );
 
-// RC Drive Mode Button Listener
+// ── Parallax Camera Micro-Movement ─────────────────────────────────────────
+const _mouse = { x: 0, y: 0 };
+const _targetOffset = new THREE.Vector3();
+let _parallaxActive = false;
+
+window.addEventListener('mousemove', (e) => {
+  _mouse.x = (e.clientX / window.innerWidth  - 0.5) * 2;
+  _mouse.y = (e.clientY / window.innerHeight - 0.5) * 2;
+  _parallaxActive = true;
+});
+
+// ── RC Drive Button ─────────────────────────────────────────────────────────
 const btnRcDrive = document.getElementById('btn-rc-drive');
 btnRcDrive?.addEventListener('click', () => {
   soundEngine.playSwitchClick();
@@ -200,14 +214,23 @@ btnRcDrive?.addEventListener('click', () => {
   rcCar.setActive(willBeActive);
 });
 
-// Room Customizer Drawer Button Listener
+// ── Rhythm Beat Button ──────────────────────────────────────────────────────
+const btnRhythm = document.getElementById('btn-rhythm');
+btnRhythm?.addEventListener('click', () => {
+  soundEngine.playSwitchClick();
+  if (interactionsHandler && interactionsHandler.startRhythmMode) {
+    interactionsHandler.startRhythmMode();
+  }
+});
+
+// ── Room Customizer Drawer ──────────────────────────────────────────────────
 const btnCustomizer = document.getElementById('btn-customizer');
 btnCustomizer?.addEventListener('click', () => {
   soundEngine.playSwitchClick();
   customizer.toggleDrawer();
 });
 
-// Atmosphere Preset Pills UI Event Listeners
+// Atmosphere Preset Pills
 const presetPills = document.querySelectorAll('.preset-pill');
 presetPills.forEach((pill) => {
   pill.addEventListener('click', (e) => {
@@ -224,7 +247,7 @@ presetPills.forEach((pill) => {
   });
 });
 
-// Camera View Pills UI Event Listeners
+// Camera View Pills
 const camPills = document.querySelectorAll('.cam-pill');
 camPills.forEach((pill) => {
   pill.addEventListener('click', (e) => {
@@ -249,20 +272,41 @@ window.addEventListener('resize', () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   composer.setSize(window.innerWidth, window.innerHeight);
+  bloomPass.setSize(window.innerWidth, window.innerHeight);
 });
+
+// ── Hide Loading Splash ─────────────────────────────────────────────────────
+// Hide after a short delay to ensure Three.js has rendered at least one frame
+let _splashHidden = false;
+function hideSplash() {
+  if (_splashHidden) return;
+  _splashHidden = true;
+  const splash = document.getElementById('loading-splash');
+  if (splash) {
+    setTimeout(() => splash.classList.add('hidden'), 1700);
+  }
+}
 
 // 11. Main Animation Loop
 const clock = new THREE.Clock();
+let _frameCount = 0;
 
 function animate() {
   stats.begin();
 
   const delta = clock.getDelta();
+  _frameCount++;
+
+  // Hide splash after a few frames
+  if (_frameCount === 4) hideSplash();
 
   pcSetup.update(delta);
   furniture.update(delta);
   rcCar.update(delta);
   roomPet.update(delta, rcCar);
+
+  // Dust particles
+  dustParticles.update(delta);
 
   if (fpsController.active) {
     fpsController.update(delta);
@@ -273,7 +317,18 @@ function animate() {
     controls.update();
   }
 
-  // Update animated monitor screens
+  // Parallax micro-movement (subtle, only in orbit mode)
+  if (_parallaxActive && !fpsController.active && !rcCar.state.active) {
+    _targetOffset.set(
+      _mouse.x * 0.18,
+      _mouse.y * -0.10,
+      0
+    );
+    // Gently shift camera target for depth illusion
+    controls.target.x += (_targetOffset.x - controls.target.x + 0) * delta * 0.5;
+  }
+
+  // Update monitor screens
   if (deskSetup && deskSetup.screenManager) {
     deskSetup.screenManager.update(delta);
   }
@@ -283,19 +338,16 @@ function animate() {
     room.animatedWindow.update(delta);
   }
 
-  // Speaker audio LED visualizer ring pulse
+  // Speaker LED visualizer ring pulse
   if (deskSetup && deskSetup.speakerLedMat) {
     if (soundEngine.isPlayingMusic) {
       const audioLevel = soundEngine.getAudioLevel();
       const pulseIntensity = 0.5 + audioLevel * 1.8;
-      deskSetup.speakerLedMat.color.setHSL(0.5 + audioLevel * 0.2, 1.0, Math.min(0.8, 0.35 * pulseIntensity));
+      deskSetup.speakerLedMat.color.setHSL(0.75 + audioLevel * 0.15, 1.0, Math.min(0.8, 0.35 * pulseIntensity));
     } else {
-      deskSetup.speakerLedMat.color.set('#0088aa');
+      deskSetup.speakerLedMat.color.set('#6d28d9');
     }
   }
-
-  // Update ambient dust particles
-  dustParticles.update(delta);
 
   composer.render();
 

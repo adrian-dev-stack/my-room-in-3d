@@ -102,9 +102,11 @@ export class AnimatedScreenManager {
     this.timeSinceLastScreenUpdate = this.screenUpdateInterval;
   }
 
-  setRhythmMode(enabled) {
+  setRhythmMode(enabled, externalGame = null) {
     this.isRhythmMode = enabled;
     if (enabled) this.isArcadeMode = false; // mutually exclusive
+    // Use the external game instance if provided (from Interactions.js)
+    if (externalGame) this.rhythmGame = externalGame;
     if (this.rhythmGame) {
       this.rhythmGame.active = enabled;
     }

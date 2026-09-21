@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { soundEngine } from '../utils/soundEngine.js';
+import { RhythmBeatGame } from '../utils/rhythmBeatGame.js';
 
 export function setupInteractions(scene, camera, controls, lighting, furniture, pcSetup, deskSetup, rcCar, fpsController, roomPet) {
   const raycaster = new THREE.Raycaster();
@@ -64,22 +65,22 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     }, 1500);
   }
 
-  // 1. Main Monitor — Click to open interactive terminal & arcade launcher
+  // 1. Main Monitor — Click to open interactive terminal & game launcher
   const monitor = scene.getObjectByName('MainMonitor');
   if (monitor) {
-    registerItem(monitor, 'Workstation Monitor (Click to Play or Open Terminal)', 'monitor', () => {
+    registerItem(monitor, 'Workstation Monitor (Click to Play Games or Open Terminal)', 'monitor', () => {
       soundEngine.playSwitchClick();
       openModal('🖥️ Workstation OS v2.0', `
         <div class="terminal-header">&gt; system.interactive_shell()</div>
-        <p style="font-size: 13px; color: #94a3b8; margin: 8px 0 14px;">Launch the live Cyber Runner arcade game or Rhythm Beat directly on the 3D monitor, or run terminal commands below.</p>
+        <p style="font-size: 13px; color: #94a3b8; margin: 8px 0 14px;">Launch games on the 3D monitor or run terminal commands below.</p>
         <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
-          <button class="modal-btn highlight-btn" id="btn-play-arcade">🎮 Play Cyber Runner</button>
-          <button class="modal-btn highlight-btn" id="btn-play-rhythm" style="background: linear-gradient(135deg,#7c3aed,#a855f7);">🎵 Rhythm Beat</button>
-          <button class="modal-btn" id="btn-cycle-screen">🔄 Cycle Screen Mode</button>
+          <button class="modal-btn highlight-btn" id="btn-play-rhythm">🎵 Play Rhythm Beat</button>
+          <button class="modal-btn highlight-btn" id="btn-play-arcade">🎮 Cyber Runner</button>
+          <button class="modal-btn" id="btn-cycle-screen">🔄 Cycle Screen</button>
         </div>
         <div class="terminal-cli-container">
           <div class="cli-output-log" id="cli-output-log">
-            <div class="cli-line info">Type <span class="cli-cmd">help</span> for commands, or <span class="cli-cmd">game</span> / <span class="cli-cmd">rhythm</span> to play.</div>
+            <div class="cli-line info">Type <span class="cli-cmd">help</span> for commands. Try <span class="cli-cmd">rhythm</span> or <span class="cli-cmd">game</span>.</div>
           </div>
           <div class="cli-input-row">
             <span class="cli-prompt">guest@room:~$</span>
@@ -88,16 +89,16 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
         </div>
       `);
 
-      // Wire Play Arcade button
-      document.getElementById('btn-play-arcade')?.addEventListener('click', () => {
-        closeModal();
-        startArcadeMode();
-      });
-
-      // Wire Play Rhythm Beat button
+      // Wire Rhythm Beat button
       document.getElementById('btn-play-rhythm')?.addEventListener('click', () => {
         closeModal();
         startRhythmMode();
+      });
+
+      // Wire Cyber Runner button
+      document.getElementById('btn-play-arcade')?.addEventListener('click', () => {
+        closeModal();
+        startArcadeMode();
       });
 
       // Wire Cycle Screen Mode button
@@ -105,6 +106,7 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
         soundEngine.playSwitchClick();
         if (deskSetup && deskSetup.screenManager) {
           deskSetup.screenManager.setArcadeMode(false);
+          if (deskSetup.screenManager.setRhythmMode) deskSetup.screenManager.setRhythmMode(false);
           const newMode = deskSetup.screenManager.cycleMainMode();
           showScreenToast('🖥️', newMode);
         }
@@ -125,9 +127,10 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     });
   }
 
-  // Helper to start arcade mode
+  // Helper to start arcade mode (Cyber Snake)
   function startArcadeMode() {
     if (deskSetup && deskSetup.screenManager) {
+      if (deskSetup.screenManager.setRhythmMode) deskSetup.screenManager.setRhythmMode(false);
       deskSetup.screenManager.setArcadeMode(true);
       setCameraPreset('Desk Setup');
       showArcadeHud(true);
@@ -135,13 +138,20 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     }
   }
 
-  // Helper to start rhythm mode
+  // ── Rhythm Beat Game ─────────────────────────────────────────────────────
+  const rhythmGame = new RhythmBeatGame(soundEngine);
+
   function startRhythmMode() {
     if (deskSetup && deskSetup.screenManager) {
-      deskSetup.screenManager.setRhythmMode(true);
+      deskSetup.screenManager.setArcadeMode(false);
+      if (deskSetup.screenManager.setRhythmMode) {
+        deskSetup.screenManager.setRhythmMode(true, rhythmGame);
+      }
+      rhythmGame.active = true;
+      rhythmGame.state = 'READY';
       setCameraPreset('Desk Setup');
       showRhythmHud(true);
-      showQuickNotification('🎵 Rhythm Beat! Press [A][S][D][F] to hit notes, Esc to Exit.');
+      showQuickNotification('🎵 Rhythm Beat! Press [A][S][D][F] to tap notes, Esc to exit.');
     }
   }
 
@@ -162,14 +172,17 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
     if (cmd === 'help') {
       append(`Available commands:
+        <br>• <span class="cli-cmd">rhythm</span> — 🎵 Play Rhythm Beat (NEW!)
+        <br>• <span class="cli-cmd">game</span> — 🎮 Play Cyber Runner on 3D monitor
         <br>• <span class="cli-cmd">skills</span> — View engineering stack
         <br>• <span class="cli-cmd">projects</span> — View portfolio projects
-        <br>• <span class="cli-cmd">game</span> — Play Cyber Runner on 3D monitor
-        <br>• <span class="cli-cmd">rhythm</span> — Play Rhythm Beat (A/S/D/F lanes)
         <br>• <span class="cli-cmd">weather</span> — Sync current local weather
         <br>• <span class="cli-cmd">music</span> — Toggle Lo-Fi Radio
         <br>• <span class="cli-cmd">matrix</span> — Digital green rain test
         <br>• <span class="cli-cmd">clear</span> — Clear terminal window`);
+    } else if (cmd === 'rhythm') {
+      closeModal();
+      startRhythmMode();
     } else if (cmd === 'skills') {
       append(`Engineering Skills:
         <br>• <strong>Core:</strong> JavaScript (ESNext), TypeScript, Three.js, WebGL, HTML5 Canvas
@@ -184,9 +197,6 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     } else if (cmd === 'game') {
       closeModal();
       startArcadeMode();
-    } else if (cmd === 'rhythm') {
-      closeModal();
-      startRhythmMode();
     } else if (cmd === 'weather') {
       append(`Weather Status: Connected & synchronized in real-time with local time.`);
     } else if (cmd === 'music') {
@@ -258,7 +268,8 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
     document.getElementById('rhythm-exit-btn')?.addEventListener('click', () => {
       showRhythmHud(false);
-      if (deskSetup?.screenManager) deskSetup.screenManager.setRhythmMode(false);
+      rhythmGame.active = false;
+      if (deskSetup?.screenManager?.setRhythmMode) deskSetup.screenManager.setRhythmMode(false);
       resetCameraView();
     });
   }
@@ -375,22 +386,23 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
   // Real-time physical keyboard typing listener
   window.addEventListener('keydown', (e) => {
-    // If rhythm mode is running, route inputs to rhythm game
-    if (deskSetup && deskSetup.screenManager && deskSetup.screenManager.isRhythmMode) {
+    // ── Route to Rhythm Beat game ─────────────────────────────────────────
+    if (rhythmGame.active) {
       if (e.code === 'Escape') {
-        deskSetup.screenManager.setRhythmMode(false);
+        rhythmGame.active = false;
         showRhythmHud(false);
+        if (deskSetup?.screenManager?.setRhythmMode) deskSetup.screenManager.setRhythmMode(false);
         resetCameraView();
         return;
       }
-      deskSetup.screenManager.handleRhythmKey(e.code);
-      if (['KeyA', 'KeyS', 'KeyD', 'KeyF', 'Space', 'Enter'].includes(e.code)) {
+      rhythmGame.handleKeyDown(e.code);
+      if (['KeyA', 'KeyS', 'KeyD', 'KeyF', 'Space'].includes(e.code)) {
         e.preventDefault();
       }
       return;
     }
 
-    // If arcade mode is running, route inputs directly to arcade game
+    // ── Route to Arcade (Cyber Runner) game ───────────────────────────────
     if (deskSetup && deskSetup.screenManager && deskSetup.screenManager.isArcadeMode) {
       if (e.code === 'Escape') {
         deskSetup.screenManager.setArcadeMode(false);
@@ -417,6 +429,10 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     if (deskSetup && deskSetup.pressRandomKey) {
       deskSetup.pressRandomKey();
     }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (rhythmGame.active) rhythmGame.handleKeyUp(e.code);
   });
 
   // Modal helpers with DOM sanitization
@@ -699,5 +715,5 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     }
   }
 
-  return { setCameraPreset, resetCameraView, updateRadioUI };
+  return { setCameraPreset, resetCameraView, updateRadioUI, startRhythmMode };
 }
