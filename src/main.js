@@ -37,6 +37,7 @@ import { createRoomPet } from './components/RoomPet.js';
 import { RoomCustomizer } from './components/RoomCustomizer.js';
 import { soundEngine } from './utils/soundEngine.js';
 import { WeatherSync } from './utils/weatherSync.js';
+import { DustParticles } from './utils/dustParticles.js';
 
 // 1. Scene Setup
 const canvas = document.querySelector('#webgl');
@@ -138,6 +139,9 @@ const roomPet = createRoomPet(scene, soundEngine);
 
 // Interactive Room Aesthetic Customizer & Custom Neon Sign
 const customizer = new RoomCustomizer(room, soundEngine);
+
+// Ambient Floating Dust Particles
+const dustParticles = new DustParticles(scene);
 
 // Real-Time Weather & Time Sync
 const weatherSync = new WeatherSync();
@@ -289,6 +293,9 @@ function animate() {
       deskSetup.speakerLedMat.color.set('#0088aa');
     }
   }
+
+  // Update ambient dust particles
+  dustParticles.update(delta);
 
   composer.render();
 
