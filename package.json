@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "export:model": "node scripts/export-room.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -17,6 +18,8 @@
     "three": "^0.165.0"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.0.10",
+    "gltf-validator": "^2.0.0-dev.3.10",
     "vite": "^5.3.1",
     "vitest": "^1.6.1"
   }

@@ -13,6 +13,7 @@ export class AnimatedWindow {
     this.ctx = this.canvas.getContext('2d');
     
     this.texture = new THREE.CanvasTexture(this.canvas);
+    this.texture.colorSpace = THREE.SRGBColorSpace;
     this.texture.wrapS = THREE.RepeatWrapping;
     this.texture.wrapT = THREE.RepeatWrapping;
     this.texture.generateMipmaps = false;

@@ -1,13 +1,13 @@
 /**
  * DustParticles — Ambient floating particles for atmospheric 3D depth.
- * Creates 400 tiny neon-glinting particles drifting slowly through the room.
+ * Drifts a few subtle particles through the light.
  */
 import * as THREE from 'three';
 
 export class DustParticles {
   constructor(scene) {
     this.scene = scene;
-    this.count = 400;
+    this.count = 80;
 
     // Room bounds (matching Room.js ROOM_SIZE = 7.2, WALL_HEIGHT = 4.2)
     this.boundsX = 3.4;
@@ -66,7 +66,7 @@ export class DustParticles {
       size: 0.018,
       vertexColors: true,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.22,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       sizeAttenuation: true

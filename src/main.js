@@ -4,6 +4,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { SSAOPass } from 'three/examples/jsm/postprocessing/SSAOPass.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import Stats from 'stats.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 
@@ -23,10 +25,7 @@ if (!WebGL.isWebGLAvailable()) {
   throw new Error('WebGL is not supported in this environment');
 }
 
-import { createRoom } from './components/Room.js';
-import { createDeskSetup } from './components/DeskSetup.js';
-import { createPCSetup } from './components/PCSetup.js';
-import { createFurniture } from './components/Furniture.js';
+import { createRoomModel } from './components/RoomModel.js';
 import { createLighting } from './components/Lighting.js';
 import { createGUI } from './components/GUI.js';
 import { setupInteractions } from './components/Interactions.js';
@@ -38,32 +37,41 @@ import { RoomCustomizer } from './components/RoomCustomizer.js';
 import { soundEngine } from './utils/soundEngine.js';
 import { WeatherSync } from './utils/weatherSync.js';
 import { DustParticles } from './utils/dustParticles.js';
+import { getRoomOverview } from './utils/roomCamera.js';
+import { RenderQualityController, getRenderPixelRatio } from './utils/renderQuality.js';
+import { setupRoomUI } from './components/RoomUI.js';
+
+setupRoomUI();
+let savedQuality = 'auto';
+try { savedQuality = localStorage.getItem('room-render-quality') || 'auto'; } catch {}
+const renderQuality = new RenderQualityController(savedQuality);
 
 // 1. Scene Setup
 const canvas = document.querySelector('#webgl');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#030407');
+scene.background = new THREE.Color('#0c1017');
 
 // ── Enhanced Depth Fog ──────────────────────────────────────────────────────
-scene.fog = new THREE.FogExp2('#06050d', 0.028);
+scene.fog = new THREE.FogExp2('#0c1017', 0.012);
 
 // 2. Camera Setup (Isometric Perspective)
 const camera = new THREE.PerspectiveCamera(
-  30,
+  34,
   window.innerWidth / window.innerHeight,
   0.1,
   100
 );
-camera.position.set(7.5, 6.5, 7.5);
+const overview = getRoomOverview(camera.aspect);
+camera.position.set(overview.position.x, overview.position.y, overview.position.z);
 
 // 3. OrbitControls
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.055;
-controls.target.set(0, 1.2, 0);
+controls.target.set(overview.target.x, overview.target.y, overview.target.z);
 controls.maxPolarAngle = Math.PI / 2 - 0.04;
 controls.minDistance = 3.5;
-controls.maxDistance = 18;
+controls.maxDistance = 64;
 controls.update();
 
 // 4. WebGL Renderer
@@ -73,29 +81,45 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance'
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(getRenderPixelRatio(renderQuality.quality, window.innerWidth, window.innerHeight, window.devicePixelRatio));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.35;
+renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const environmentScene = new RoomEnvironment(renderer);
+const pmrem = new THREE.PMREMGenerator(renderer);
+const environmentTarget = pmrem.fromScene(environmentScene, 0.04);
+scene.environment = environmentTarget.texture;
+scene.environmentIntensity = 0.55;
+environmentScene.dispose();
+pmrem.dispose();
 
 // 5. Post-Processing — Enhanced Bloom
 const renderPass = new RenderPass(scene, camera);
 
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.52,   // strength (was 0.35)
-  0.55,   // radius
-  0.82    // threshold (lower = more bloom)
+  0.28,
+  0.4,
+  1.05
 );
+
+const ambientOcclusion = new SSAOPass(scene, camera, window.innerWidth, window.innerHeight, 16);
+ambientOcclusion.kernelRadius = 0.3;
+ambientOcclusion.minDistance = 0.002;
+ambientOcclusion.maxDistance = 0.12;
+ambientOcclusion.enabled = false;
 
 const outputPass = new OutputPass();
 
 const composer = new EffectComposer(renderer);
 composer.addPass(renderPass);
+composer.addPass(ambientOcclusion);
 composer.addPass(bloomPass);
 composer.addPass(outputPass);
+ambientOcclusion.setSize(Math.ceil(window.innerWidth * 0.75), Math.ceil(window.innerHeight * 0.75));
 
 // 6. Performance Stats
 const stats = new Stats();
@@ -108,18 +132,9 @@ if (statsContainer) {
 }
 
 // 7. Build 3D Room Environment
-const room = createRoom();
-scene.add(room.group);
-
-const deskSetup = createDeskSetup(soundEngine);
-scene.add(deskSetup.group);
-
-const pcSetup = createPCSetup();
-pcSetup.group.position.set(1.15, 0.95 + 0.68 / 2, -2.7);
-scene.add(pcSetup.group);
-
-const furniture = createFurniture();
-scene.add(furniture.group);
+const roomModel = createRoomModel(soundEngine);
+const { room, deskSetup, pcSetup, furniture } = roomModel;
+scene.add(roomModel.group);
 
 const lighting = createLighting(scene);
 
@@ -142,6 +157,34 @@ const roomPet = createRoomPet(scene, soundEngine);
 
 // Room Customizer
 const customizer = new RoomCustomizer(room, soundEngine);
+
+function dispatchPerformance(fps = null) {
+  window.dispatchEvent(new CustomEvent('room-performance', {
+    detail: { fps, quality: renderQuality.quality, label: renderQuality.profile.label, mode: renderQuality.mode }
+  }));
+}
+
+function applyRenderQuality() {
+  const { profile } = renderQuality;
+  const pixelRatio = getRenderPixelRatio(renderQuality.quality, window.innerWidth, window.innerHeight, window.devicePixelRatio);
+  renderer.setPixelRatio(pixelRatio);
+  composer.setPixelRatio(pixelRatio);
+  ambientOcclusion.enabled = profile.occlusion && window.innerWidth >= 768;
+  ambientOcclusion.setSize(Math.ceil(window.innerWidth * pixelRatio * 0.65), Math.ceil(window.innerHeight * pixelRatio * 0.65));
+  bloomPass.enabled = profile.bloom;
+  deskSetup.screenManager.screenUpdateInterval = 1 / profile.screenFPS;
+  room.animatedWindow.windowUpdateInterval = 1 / profile.windowFPS;
+  dispatchPerformance();
+}
+
+const qualitySelect = document.getElementById('render-quality');
+if (qualitySelect) qualitySelect.value = renderQuality.mode;
+qualitySelect?.addEventListener('change', () => {
+  renderQuality.setMode(qualitySelect.value);
+  try { localStorage.setItem('room-render-quality', renderQuality.mode); } catch {}
+  applyRenderQuality();
+});
+applyRenderQuality();
 
 // ── Ambient Dust Particles ──────────────────────────────────────────────────
 const dustParticles = new DustParticles(scene);
@@ -199,6 +242,7 @@ interactionsHandler = setupInteractions(
 const _mouse = { x: 0, y: 0 };
 const _targetOffset = new THREE.Vector3();
 let _parallaxActive = false;
+let _parallaxX = 0;
 
 window.addEventListener('mousemove', (e) => {
   _mouse.x = (e.clientX / window.innerWidth  - 0.5) * 2;
@@ -269,10 +313,12 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
 
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
   composer.setSize(window.innerWidth, window.innerHeight);
-  bloomPass.setSize(window.innerWidth, window.innerHeight);
+  applyRenderQuality();
+  const activeView = document.querySelector('.cam-pill.active')?.getAttribute('data-cam');
+  if (!fpsController.active && !rcCar.state.active && ['Isometric', 'Desk Setup', 'Bed Corner'].includes(activeView)) {
+    interactionsHandler?.setCameraPreset(activeView, { silent: true });
+  }
 });
 
 // ── Hide Loading Splash ─────────────────────────────────────────────────────
@@ -290,11 +336,18 @@ function hideSplash() {
 // 11. Main Animation Loop
 const clock = new THREE.Clock();
 let _frameCount = 0;
+let frameRequest = 0;
+let sampleStart = performance.now();
+let sampleFrames = 0;
+
+if (new URLSearchParams(window.location.search).has('profile')) {
+  window.__roomProfile = { renderer, composer, ambientOcclusion, bloomPass, deskSetup, room, pcSetup, scene, camera, renderQuality };
+}
 
 function animate() {
   stats.begin();
 
-  const delta = clock.getDelta();
+  const delta = Math.min(clock.getDelta(), 0.1);
   _frameCount++;
 
   // Hide splash after a few frames
@@ -325,11 +378,15 @@ function animate() {
       0
     );
     // Gently shift camera target for depth illusion
-    controls.target.x += (_targetOffset.x - controls.target.x + 0) * delta * 0.5;
+    const nextParallaxX = THREE.MathUtils.damp(_parallaxX, _targetOffset.x, 3, delta);
+    controls.target.x += nextParallaxX - _parallaxX;
+    _parallaxX = nextParallaxX;
   }
 
   // Update monitor screens
   if (deskSetup && deskSetup.screenManager) {
+    const screens = deskSetup.screenManager;
+    screens.screenUpdateInterval = 1 / (screens.isArcadeMode || screens.isRhythmMode ? 30 : renderQuality.profile.screenFPS);
     deskSetup.screenManager.update(delta);
   }
 
@@ -349,10 +406,33 @@ function animate() {
     }
   }
 
-  composer.render();
+  if (renderQuality.quality === 'smooth') renderer.render(scene, camera);
+  else composer.render();
+
+  sampleFrames++;
+  const now = performance.now();
+  if (now - sampleStart >= 1000) {
+    const fps = Math.round(sampleFrames * 1000 / (now - sampleStart));
+    if (renderQuality.observeFPS(fps)) applyRenderQuality();
+    dispatchPerformance(fps);
+    sampleFrames = 0;
+    sampleStart = now;
+  }
 
   stats.end();
-  requestAnimationFrame(animate);
+  frameRequest = requestAnimationFrame(animate);
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    cancelAnimationFrame(frameRequest);
+    clock.stop();
+  } else {
+    clock.start();
+    sampleStart = performance.now();
+    sampleFrames = 0;
+    frameRequest = requestAnimationFrame(animate);
+  }
+});
 
 animate();

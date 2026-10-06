@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { AnimatedScreenManager } from '../utils/animatedScreens.js';
+import { createWoodMaterialTextures, createFabricMaterialTextures, createPaintMaterialTextures } from '../utils/materialTextures.js';
 
 export function createDeskSetup(soundEngine = null) {
   const deskGroup = new THREE.Group();
@@ -10,21 +11,29 @@ export function createDeskSetup(soundEngine = null) {
   const screenManager = new AnimatedScreenManager(soundEngine);
 
   // Materials matching photo 3
-  const darkWoodDeskMat = new THREE.MeshStandardMaterial({
-    color: '#4e1e0d', // Reddish-brown wooden tabletop from photo 3
-    roughness: 0.42,
-    metalness: 0.06
+  const darkWoodDeskMat = new THREE.MeshPhysicalMaterial({
+    ...createWoodMaterialTextures({ color: '#582818' }),
+    color: '#ffffff',
+    normalScale: new THREE.Vector2(0.35, 0.35),
+    roughness: 0.85,
+    metalness: 0,
+    clearcoat: 0.24,
+    clearcoatRoughness: 0.4
   });
 
   const blackMetalMat = new THREE.MeshStandardMaterial({
     color: '#14161d',
-    roughness: 0.28,
-    metalness: 0.85
+    ...createPaintMaterialTextures({ size: 256 }),
+    normalScale: new THREE.Vector2(0.06, 0.06),
+    roughness: 0.55,
+    metalness: 0.55
   });
 
   const deskMatMat = new THREE.MeshStandardMaterial({
-    color: '#161920', // Black desk mat from photo 3
-    roughness: 0.95
+    ...createFabricMaterialTextures({ color: '#161920' }),
+    color: '#ffffff',
+    normalScale: new THREE.Vector2(0.2, 0.2),
+    roughness: 1
   });
 
   const whitePlasticMat = new THREE.MeshStandardMaterial({
@@ -205,6 +214,14 @@ export function createDeskSetup(soundEngine = null) {
   const mouseMesh = new THREE.Mesh(mouseGeo, whitePlasticMat);
   mouseMesh.castShadow = true;
   mouseGroup.add(mouseMesh);
+
+  const scrollWheel = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.008, 12), keycapMat);
+  scrollWheel.rotation.z = Math.PI / 2;
+  scrollWheel.position.set(0, 0.019, -0.025);
+  mouseGroup.add(scrollWheel);
+  const mouseSeam = new THREE.Mesh(new THREE.BoxGeometry(0.0015, 0.001, 0.032), keycapMat);
+  mouseSeam.position.set(0, 0.019, -0.005);
+  mouseGroup.add(mouseSeam);
 
   mouseGroup.position.set(0.53, 1.15 + DESK_H / 2 + 0.02, 0.08);
   deskGroup.add(mouseGroup);

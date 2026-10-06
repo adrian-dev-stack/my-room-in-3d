@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createWoodMaterialTextures } from '../utils/materialTextures.js';
 
 /**
  * RoomCustomizer - Real-time Room Aesthetic Sandbox
@@ -34,7 +35,7 @@ export const NEON_COLORS = {
 };
 
 export class RoomCustomizer {
-  constructor(room, soundEngine = null) {
+  constructor(room, soundEngine = null, { createUI = true } = {}) {
     this.room = room;
     this.soundEngine = soundEngine;
 
@@ -54,7 +55,7 @@ export class RoomCustomizer {
     this._loadSettings();
     this._createNeonSignMesh();
     this._applyAllSettings();
-    this._createDrawerUI();
+    if (createUI) this._createDrawerUI();
   }
 
   _loadSettings() {
@@ -87,6 +88,7 @@ export class RoomCustomizer {
     this.neonCtx = this.neonCanvas.getContext('2d');
 
     this.neonTexture = new THREE.CanvasTexture(this.neonCanvas);
+    this.neonTexture.colorSpace = THREE.SRGBColorSpace;
     this.neonTexture.generateMipmaps = false;
     this.neonTexture.minFilter = THREE.LinearFilter;
     this.neonTexture.magFilter = THREE.LinearFilter;
@@ -104,7 +106,7 @@ export class RoomCustomizer {
     const neonGeo = new THREE.PlaneGeometry(2.4, 0.6);
     this.neonMesh = new THREE.Mesh(neonGeo, neonMat);
     // Placed on the back wall above the bed
-    this.neonMesh.position.set(-1.8, 3.1, -3.48);
+    this.neonMesh.position.set(-1.8, 3.1, -3.388);
     this.neonMesh.name = 'CustomNeonSign';
 
     // Emissive ambient point light radiating from neon sign
@@ -166,7 +168,7 @@ export class RoomCustomizer {
   }
 
   setFloor(floorKey) {
-    if (!FLOOR_STYLES[floorKey]) return;
+    if (!FLOOR_STYLES[floorKey] || this.settings.floor === floorKey) return;
     this.settings.floor = floorKey;
     this._applyFloor();
     this.saveSettings();
@@ -196,9 +198,24 @@ export class RoomCustomizer {
     if (!this.room) return;
     const style = FLOOR_STYLES[this.settings.floor];
     if (this.room.floorMaterial) {
-      this.room.floorMaterial.color.set(style.color);
-      this.room.floorMaterial.roughness = style.roughness;
-      this.room.floorMaterial.metalness = style.metalness;
+      const material = this.room.floorMaterial;
+      if (material.userData.pbrWood && ['walnut', 'oak'].includes(this.settings.floor)) {
+        const textures = createWoodMaterialTextures({
+          planks: true,
+          color: this.settings.floor === 'walnut' ? '#805637' : '#c99d67'
+        });
+        for (const [key, texture] of Object.entries(textures)) {
+          material[key]?.dispose();
+          material[key] = texture.clone();
+          material[key].repeat.set(4, 4);
+        }
+        material.color.set('#ffffff');
+      } else {
+        material.color.set(style.color);
+      }
+      const woodFinish = material.userData.pbrWood && ['walnut', 'oak'].includes(this.settings.floor);
+      material.roughness = woodFinish ? 0.85 : style.roughness;
+      material.metalness = woodFinish ? 0 : style.metalness;
       this.room.floorMaterial.needsUpdate = true;
     }
   }
@@ -226,13 +243,15 @@ export class RoomCustomizer {
       drawer = document.createElement('aside');
       drawer.id = 'customizer-drawer';
       drawer.className = 'customizer-drawer closed';
-      drawer.setAttribute('aria-label', 'Room Customizer Sandbox');
+      drawer.setAttribute('role', 'dialog');
+      drawer.setAttribute('aria-label', 'Customize room');
+      drawer.setAttribute('aria-hidden', 'true');
+      drawer.inert = true;
 
       drawer.innerHTML = `
         <div class="drawer-header">
           <div class="drawer-title-group">
-            <span class="drawer-icon">🎨</span>
-            <span class="drawer-title">ROOM SANDBOX</span>
+            <span class="drawer-title">Make it yours</span>
           </div>
           <button class="drawer-close" id="drawer-close-btn" aria-label="Close Customizer">✕</button>
         </div>
@@ -240,12 +259,12 @@ export class RoomCustomizer {
         <div class="drawer-body">
           <!-- Floor Section -->
           <div class="custom-section">
-            <label class="custom-label">FLOOR MATERIAL</label>
+            <div class="custom-label">Floor material</div>
             <div class="custom-grid" id="floor-options">
               ${Object.entries(FLOOR_STYLES)
                 .map(
                   ([k, v]) => `
-                <button class="custom-tile ${k === this.settings.floor ? 'active' : ''}" data-floor="${k}">
+                <button class="custom-tile ${k === this.settings.floor ? 'active' : ''}" data-floor="${k}" aria-pressed="${k === this.settings.floor}">
                   <span class="tile-swatch" style="background: ${v.color};"></span>
                   <span class="tile-name">${v.name}</span>
                 </button>
@@ -257,12 +276,12 @@ export class RoomCustomizer {
 
           <!-- Wall Color Section -->
           <div class="custom-section">
-            <label class="custom-label">WALL FINISH</label>
+            <div class="custom-label">Wall finish</div>
             <div class="custom-grid" id="wall-options">
               ${Object.entries(WALL_COLORS)
                 .map(
                   ([k, v]) => `
-                <button class="custom-tile ${k === this.settings.wall ? 'active' : ''}" data-wall="${k}">
+                <button class="custom-tile ${k === this.settings.wall ? 'active' : ''}" data-wall="${k}" aria-pressed="${k === this.settings.wall}">
                   <span class="tile-swatch" style="background: ${v.color};"></span>
                   <span class="tile-name">${v.name}</span>
                 </button>
@@ -274,14 +293,14 @@ export class RoomCustomizer {
 
           <!-- Custom Neon Sign Section -->
           <div class="custom-section">
-            <label class="custom-label">CUSTOM NEON WALL SIGN</label>
-            <input type="text" id="neon-text-input" class="custom-input" value="${this.settings.neonText}" maxlength="20" placeholder="Your Custom Slogan..." />
+            <label class="custom-label" for="neon-text-input">Neon wall sign</label>
+            <input type="text" id="neon-text-input" class="custom-input" maxlength="20" placeholder="Your sign text" />
 
             <div class="neon-color-row" id="neon-colors">
               ${Object.entries(NEON_COLORS)
                 .map(
                   ([k, v]) => `
-                <button class="neon-color-btn ${k === this.settings.neonColor ? 'active' : ''}" data-neon="${k}" title="${v.name}" style="--neon-col: ${v.color};">
+                <button class="neon-color-btn ${k === this.settings.neonColor ? 'active' : ''}" data-neon="${k}" aria-label="${v.name}" aria-pressed="${k === this.settings.neonColor}" title="${v.name}" style="--neon-col: ${v.color};">
                   <span class="neon-swatch" style="background: ${v.color};"></span>
                 </button>
               `
@@ -303,8 +322,12 @@ export class RoomCustomizer {
       drawer.querySelectorAll('[data-floor]').forEach((btn) => {
         btn.addEventListener('click', () => {
           if (this.soundEngine) this.soundEngine.playSwitchClick();
-          drawer.querySelectorAll('[data-floor]').forEach((b) => b.classList.remove('active'));
+          drawer.querySelectorAll('[data-floor]').forEach((b) => {
+            b.classList.remove('active');
+            b.setAttribute('aria-pressed', 'false');
+          });
           btn.classList.add('active');
+          btn.setAttribute('aria-pressed', 'true');
           this.setFloor(btn.getAttribute('data-floor'));
         });
       });
@@ -313,8 +336,12 @@ export class RoomCustomizer {
       drawer.querySelectorAll('[data-wall]').forEach((btn) => {
         btn.addEventListener('click', () => {
           if (this.soundEngine) this.soundEngine.playSwitchClick();
-          drawer.querySelectorAll('[data-wall]').forEach((b) => b.classList.remove('active'));
+          drawer.querySelectorAll('[data-wall]').forEach((b) => {
+            b.classList.remove('active');
+            b.setAttribute('aria-pressed', 'false');
+          });
           btn.classList.add('active');
+          btn.setAttribute('aria-pressed', 'true');
           this.setWall(btn.getAttribute('data-wall'));
         });
       });
@@ -323,29 +350,46 @@ export class RoomCustomizer {
       drawer.querySelectorAll('[data-neon]').forEach((btn) => {
         btn.addEventListener('click', () => {
           if (this.soundEngine) this.soundEngine.playSwitchClick();
-          drawer.querySelectorAll('[data-neon]').forEach((b) => b.classList.remove('active'));
+          drawer.querySelectorAll('[data-neon]').forEach((b) => {
+            b.classList.remove('active');
+            b.setAttribute('aria-pressed', 'false');
+          });
           btn.classList.add('active');
+          btn.setAttribute('aria-pressed', 'true');
           this.setNeonColor(btn.getAttribute('data-neon'));
         });
       });
 
       // Neon text input
       const textInput = document.getElementById('neon-text-input');
+      textInput.value = this.settings.neonText;
       textInput?.addEventListener('input', (e) => {
         this.setNeonText(e.target.value);
       });
     }
 
     this.drawer = drawer;
+    document.getElementById('btn-customizer')?.setAttribute('aria-controls', 'customizer-drawer');
+    document.getElementById('btn-customizer')?.setAttribute('aria-expanded', 'false');
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !this.drawer.classList.contains('closed')) this.toggleDrawer(false);
+    });
   }
 
   toggleDrawer(open = null) {
     if (!this.drawer) return;
     const shouldOpen = open !== null ? open : this.drawer.classList.contains('closed');
+    this.drawer.inert = !shouldOpen;
+    this.drawer.setAttribute('aria-hidden', String(!shouldOpen));
+    document.getElementById('btn-customizer')?.setAttribute('aria-expanded', String(shouldOpen));
+    window.dispatchEvent(new CustomEvent('room-customizer-change', { detail: { open: shouldOpen } }));
     if (shouldOpen) {
+      this.returnFocus = document.activeElement;
       this.drawer.classList.remove('closed');
+      this.drawer.querySelector('#drawer-close-btn')?.focus();
     } else {
       this.drawer.classList.add('closed');
+      this.returnFocus?.focus?.();
     }
   }
 }

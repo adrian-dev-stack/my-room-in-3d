@@ -4,6 +4,43 @@ An interactive, 3D isometric room inspired by Bruno Simon's iconic Three.js port
 
 ---
 
+## Your downloadable room model
+
+The furnished room is exported to `public/models/my-room.glb`. It uses the
+website's own room geometry, furniture, and generated textures. No stock room
+model is used. The website and exporter share `src/components/RoomModel.js`,
+including the PC's placement on the cabinet.
+
+Regenerate the file after editing your room:
+
+```bash
+npm run export:model
+npm run build
+```
+
+The export includes the floor and cutaway walls, window blinds, desk and both
+monitors, keyboard, mouse, headset, speakers, PC and clock, bed and pillows,
+cabinet, shelves, sofa, chair, standing fan, and the default neon sign. It uses
+the website's default walnut floor and slate walls. Browser-saved customizer
+choices are not read by the exporter.
+
+The GLB contains its textures and retains separate named groups for editing.
+Displays and fan blades are static snapshots. Website games, the RC car, pet,
+particles, audio, weather, camera controls, and postprocessing remain website
+features. Room dimensions are the website's authored units, not a measured
+survey of your physical room. Screen and sign typography uses fonts installed
+on the computer running the exporter.
+
+The room uses physically based wood, woven fabric, and painted-wall materials
+with aligned color, normal, and roughness maps. Bedding and cushions have
+modeled folds and piping; the glass PC case has visible internal components.
+The website adds studio reflections and contact shading, with room and detail
+camera distances adapted to the viewport.
+
+The exporter embeds the material maps and MikkTSpace tangents, and validates
+the GLB before saving it. External viewers supply their own lighting and may
+render the materials differently.
+
 ## 🚀 Features Included
 
 - 📐 **Isometric Cutaway 3D Room:** Full 3D modeled room with wood plank floor, diagonal barn door, zebra blinds window, ceiling trim, and surface Ethernet wiring.

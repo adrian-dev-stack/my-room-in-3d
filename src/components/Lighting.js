@@ -132,6 +132,9 @@ export function createLighting(scene) {
   }
 
   function updateLighting() {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('room-lighting-change', { detail: { preset: state.preset } }));
+    }
     const ease = 0.12;
     const t = 1.0 - state.uNightMix;
     const baseR = 0.05, baseG = 0.07, baseB = 0.12;

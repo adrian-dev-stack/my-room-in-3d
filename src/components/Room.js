@@ -1,10 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import {
-  createWoodFloorTexture,
-  createWoodFloorBumpMap,
-  createZebraBlindsTexture
-} from '../utils/textures.js';
+import { createWoodMaterialTextures, createPaintMaterialTextures } from '../utils/materialTextures.js';
 import { AnimatedWindow } from '../utils/animatedWindow.js';
 
 export function createRoom() {
@@ -19,27 +15,36 @@ export function createRoom() {
   const animatedWindow = new AnimatedWindow();
 
   // Authentic Materials from your photos
-  const woodFloorTexture = createWoodFloorTexture();
-  const woodFloorBump = createWoodFloorBumpMap();
+  const floorTextures = createWoodMaterialTextures({ planks: true, color: '#956540' });
+  const tiledFloor = Object.fromEntries(Object.entries(floorTextures).map(([key, texture]) => {
+    const tile = texture.clone();
+    tile.repeat.set(4, 4);
+    return [key, tile];
+  }));
   const floorMaterial = new THREE.MeshStandardMaterial({
-    map: woodFloorTexture,
-    bumpMap: woodFloorBump,
-    bumpScale: 0.015,
-    roughness: 0.4,
-    metalness: 0.05
+    ...tiledFloor,
+    color: '#ffffff',
+    normalScale: new THREE.Vector2(0.45, 0.45),
+    roughness: 0.8,
+    metalness: 0
   });
+  floorMaterial.userData.pbrWood = true;
 
   // Authentic Light Concrete / Matte Wall Paint (Clean, continuous wall - Photo 3 & 4)
   const wallMaterial = new THREE.MeshStandardMaterial({
     color: '#e4e7eb',
+    ...createPaintMaterialTextures(),
+    normalScale: new THREE.Vector2(0.18, 0.18),
     roughness: 0.85,
-    metalness: 0.02
+    metalness: 0
   });
 
   const darkTrimMaterial = new THREE.MeshStandardMaterial({
-    color: '#2b1a0e',
-    roughness: 0.5,
-    metalness: 0.08
+    ...createWoodMaterialTextures({ size: 512, color: '#503423' }),
+    color: '#ffffff',
+    normalScale: new THREE.Vector2(0.3, 0.3),
+    roughness: 0.85,
+    metalness: 0
   });
 
   const darkBaseMaterial = new THREE.MeshStandardMaterial({
@@ -50,19 +55,20 @@ export function createRoom() {
   // 1. Floor & Isometric Base Pedestal
   const floorGeo = new RoundedBoxGeometry(ROOM_SIZE, 0.2, ROOM_SIZE, 4, 0.04);
   const floorMesh = new THREE.Mesh(floorGeo, floorMaterial);
+  floorMesh.name = 'WoodPlankFloor';
   floorMesh.position.y = -0.1;
   floorMesh.receiveShadow = true;
   roomGroup.add(floorMesh);
 
   // Extruded dark diorama base pedestal
-  const pedestalGeo = new RoundedBoxGeometry(ROOM_SIZE + 0.14, 1.3, ROOM_SIZE + 0.14, 4, 0.06);
+  const pedestalGeo = new RoundedBoxGeometry(ROOM_SIZE + 0.14, 0.38, ROOM_SIZE + 0.14, 4, 0.04);
   const pedestalMesh = new THREE.Mesh(pedestalGeo, darkBaseMaterial);
-  pedestalMesh.position.y = -0.75;
+  pedestalMesh.position.y = -0.39;
   pedestalMesh.receiveShadow = false;
   roomGroup.add(pedestalMesh);
 
   // 2. Clean Back Wall (Z = -ROOM_SIZE/2 - Door Removed!)
-  const mainBackWallGeo = new THREE.BoxGeometry(ROOM_SIZE, WALL_HEIGHT, WALL_THICKNESS);
+  const mainBackWallGeo = new RoundedBoxGeometry(ROOM_SIZE, WALL_HEIGHT, WALL_THICKNESS, 2, 0.014);
   const mainBackWall = new THREE.Mesh(mainBackWallGeo, wallMaterial);
   mainBackWall.position.set(0, WALL_HEIGHT / 2, -ROOM_SIZE / 2 + WALL_THICKNESS / 2);
   mainBackWall.receiveShadow = true;
@@ -70,12 +76,21 @@ export function createRoom() {
   roomGroup.add(mainBackWall);
 
   // 3. Side Wall on Right (X = ROOM_SIZE/2)
-  const sideRightWallGeo = new THREE.BoxGeometry(WALL_THICKNESS, WALL_HEIGHT, ROOM_SIZE);
+  const sideRightWallGeo = new RoundedBoxGeometry(WALL_THICKNESS, WALL_HEIGHT, ROOM_SIZE, 2, 0.014);
   const sideRightWall = new THREE.Mesh(sideRightWallGeo, wallMaterial);
   sideRightWall.position.set(ROOM_SIZE / 2 - WALL_THICKNESS / 2, WALL_HEIGHT / 2, 0);
   sideRightWall.receiveShadow = true;
   sideRightWall.castShadow = true;
   roomGroup.add(sideRightWall);
+
+  const skirtingBack = new THREE.Mesh(new RoundedBoxGeometry(ROOM_SIZE - 0.2, 0.14, 0.055, 2, 0.01), darkTrimMaterial);
+  skirtingBack.position.set(0, 0.07, -3.36);
+  skirtingBack.receiveShadow = true;
+  roomGroup.add(skirtingBack);
+  const skirtingRight = new THREE.Mesh(new RoundedBoxGeometry(0.055, 0.14, ROOM_SIZE - 0.2, 2, 0.01), darkTrimMaterial);
+  skirtingRight.position.set(3.36, 0.07, 0);
+  skirtingRight.receiveShadow = true;
+  roomGroup.add(skirtingRight);
 
   // 4. Dark Wood Ceiling Crown Trims (Along entire top edge)
   const trimBackGeo = new RoundedBoxGeometry(ROOM_SIZE, 0.12, WALL_THICKNESS + 0.06, 2, 0.015);
@@ -134,10 +149,18 @@ export function createRoom() {
   windowGroup.name = 'ZebraBlindsWindow';
 
   const frameMaterial = new THREE.MeshStandardMaterial({ color: '#161920', roughness: 0.3, metalness: 0.7 });
-  const frameOuterGeo = new RoundedBoxGeometry(1.65, 2.1, 0.1, 4, 0.02);
-  const frameOuter = new THREE.Mesh(frameOuterGeo, frameMaterial);
-  frameOuter.castShadow = true;
-  windowGroup.add(frameOuter);
+  for (const x of [-0.78, 0.78]) {
+    const frameSide = new THREE.Mesh(new RoundedBoxGeometry(0.09, 2.1, 0.1, 2, 0.015), frameMaterial);
+    frameSide.position.x = x;
+    frameSide.castShadow = true;
+    windowGroup.add(frameSide);
+  }
+  for (const y of [-1, 1]) {
+    const frameEdge = new THREE.Mesh(new RoundedBoxGeometry(1.65, 0.09, 0.1, 2, 0.015), frameMaterial);
+    frameEdge.position.y = y;
+    frameEdge.castShadow = true;
+    windowGroup.add(frameEdge);
+  }
 
   const blindsMaterial = new THREE.MeshStandardMaterial({
     map: animatedWindow.texture,
@@ -154,6 +177,11 @@ export function createRoom() {
   valance.position.set(0, 0.95, 0.06);
   valance.castShadow = true;
   windowGroup.add(valance);
+
+  const blindRoller = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1.4, 16), frameMaterial);
+  blindRoller.rotation.z = Math.PI / 2;
+  blindRoller.position.set(0, 0.87, 0.07);
+  windowGroup.add(blindRoller);
 
   windowGroup.position.set(-2.0, 2.3, 3.5);
   windowGroup.rotation.y = Math.PI;

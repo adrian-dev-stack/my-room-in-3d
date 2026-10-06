@@ -329,11 +329,15 @@ export class LiveClockTexture {
     this.canvas.height = 256;
     this.ctx = this.canvas.getContext('2d');
     this.texture = new THREE.CanvasTexture(this.canvas);
+    this.texture.colorSpace = THREE.SRGBColorSpace;
     this.update();
   }
 
   update() {
     const now = new Date();
+    const displayState = `${now.getHours()}:${now.getMinutes()}:${Math.floor(now.getTime() / 500) % 2}`;
+    if (displayState === this.displayState) return;
+    this.displayState = displayState;
     let h = now.getHours();
     const m = String(now.getMinutes()).padStart(2, '0');
     if (h === 0) h = 12;

@@ -29,6 +29,7 @@ export class AnimatedScreenManager {
     this.mainCanvas.height = 1152;
     this.mainCtx = this.mainCanvas.getContext('2d');
     this.mainTexture = new THREE.CanvasTexture(this.mainCanvas);
+    this.mainTexture.colorSpace = THREE.SRGBColorSpace;
     this.mainTexture.generateMipmaps = false;
     this.mainTexture.minFilter = THREE.LinearFilter;
     this.mainTexture.magFilter = THREE.LinearFilter;
@@ -39,6 +40,7 @@ export class AnimatedScreenManager {
     this.vertCanvas.height = 1920;
     this.vertCtx = this.vertCanvas.getContext('2d');
     this.vertTexture = new THREE.CanvasTexture(this.vertCanvas);
+    this.vertTexture.colorSpace = THREE.SRGBColorSpace;
     this.vertTexture.generateMipmaps = false;
     this.vertTexture.minFilter = THREE.LinearFilter;
     this.vertTexture.magFilter = THREE.LinearFilter;

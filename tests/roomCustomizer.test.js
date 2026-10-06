@@ -1,8 +1,28 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
 import { RoomCustomizer, FLOOR_STYLES, WALL_COLORS, NEON_COLORS } from '../src/components/RoomCustomizer.js';
 
 describe('RoomCustomizer Component & Material Sandbox', () => {
+  it('can apply model finishes without constructing the browser drawer', () => {
+    const mockRoom = {
+      group: new THREE.Group(),
+      floorMaterial: new THREE.MeshStandardMaterial(),
+      wallMaterial: new THREE.MeshStandardMaterial()
+    };
+    const createDrawer = vi.spyOn(RoomCustomizer.prototype, '_createDrawerUI');
+
+    try {
+      const customizer = new RoomCustomizer(mockRoom, null, { createUI: false });
+
+      expect(createDrawer).not.toHaveBeenCalled();
+      expect(mockRoom.floorMaterial.color.getHexString()).toBe('1c130d');
+      expect(mockRoom.wallMaterial.color.getHexString()).toBe('1e2530');
+      expect(customizer.settings.neonText).toBe('FIVEM PLAYER');
+    } finally {
+      createDrawer.mockRestore();
+    }
+  });
+
   it('should define available presets for floors, walls, and neon colors', () => {
     expect(Object.keys(FLOOR_STYLES).length).toBeGreaterThanOrEqual(4);
     expect(Object.keys(WALL_COLORS).length).toBeGreaterThanOrEqual(5);

@@ -391,7 +391,7 @@ export function createRCCar(scene, soundEngine) {
   if (typeof window !== 'undefined') {
     window.addEventListener('keydown', (e) => {
       if (!state.active) return;
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.code !== 'Escape' && e.target?.closest?.('input, textarea, select, button, summary, [contenteditable="true"]')) return;
 
       if (e.code === 'KeyW' || e.code === 'ArrowUp') {
         keys.forward = true;

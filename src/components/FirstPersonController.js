@@ -119,7 +119,7 @@ export class FirstPersonController {
 
     this.onKeyDown = (e) => {
       if (!this.active) return;
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.code !== 'Escape' && e.target?.closest?.('input, textarea, select, button, summary, [contenteditable="true"]')) return;
 
       if (e.code === 'KeyW' || e.code === 'ArrowUp') this.keys.forward = true;
       else if (e.code === 'KeyS' || e.code === 'ArrowDown') this.keys.backward = true;

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { LiveClockTexture } from '../utils/textures.js';
+import { createPaintMaterialTextures } from '../utils/materialTextures.js';
 
 export function createPCSetup() {
   const pcRigGroup = new THREE.Group();
@@ -9,16 +10,18 @@ export function createPCSetup() {
   // Materials
   const blackMetalMat = new THREE.MeshStandardMaterial({
     color: '#0e1015',
-    roughness: 0.25,
-    metalness: 0.85
+    ...createPaintMaterialTextures({ size: 256 }),
+    normalScale: new THREE.Vector2(0.04, 0.04),
+    roughness: 0.48,
+    metalness: 0.6
   });
 
   const glassMat = new THREE.MeshPhysicalMaterial({
     color: '#ffffff',
-    transmission: 0.9,
+    transmission: 0.96,
     opacity: 1,
-    transparent: true,
-    roughness: 0.05,
+    roughness: 0.08,
+    thickness: 0.008,
     ior: 1.52,
     reflectivity: 0.9
   });
@@ -36,16 +39,53 @@ export function createPCSetup() {
   const CASE_H = 0.68;
   const CASE_D = 0.68;
 
-  const caseFrameGeo = new RoundedBoxGeometry(CASE_W, CASE_H, CASE_D, 4, 0.02);
-  const caseFrame = new THREE.Mesh(caseFrameGeo, blackMetalMat);
-  caseFrame.castShadow = true;
-  pcRigGroup.add(caseFrame);
+  const chassis = new THREE.Group();
+  chassis.name = 'PCChassis';
+  function addCasePanel(width, height, depth, x, y, z) {
+    const panel = new THREE.Mesh(new RoundedBoxGeometry(width, height, depth, 2, 0.005), blackMetalMat);
+    panel.position.set(x, y, z);
+    panel.castShadow = true;
+    panel.receiveShadow = true;
+    chassis.add(panel);
+  }
+  addCasePanel(CASE_W, 0.022, CASE_D, 0, -CASE_H / 2, 0);
+  addCasePanel(CASE_W, 0.022, CASE_D, 0, CASE_H / 2, 0);
+  addCasePanel(0.018, CASE_H, CASE_D, CASE_W / 2, 0, 0);
+  addCasePanel(CASE_W, CASE_H, 0.018, 0, 0, -CASE_D / 2);
+  for (const x of [-CASE_W / 2 + 0.01, CASE_W / 2 - 0.01]) {
+    addCasePanel(0.025, CASE_H, 0.025, x, 0, CASE_D / 2);
+  }
+  pcRigGroup.add(chassis);
 
   // Tempered Glass Side Panel (Facing left toward desk)
   const glassGeo = new RoundedBoxGeometry(0.01, CASE_H - 0.05, CASE_D - 0.05, 2, 0.01);
   const glassMesh = new THREE.Mesh(glassGeo, glassMat);
   glassMesh.position.set(-CASE_W / 2 - 0.005, 0, 0);
   pcRigGroup.add(glassMesh);
+
+  const screwMat = new THREE.MeshStandardMaterial({ color: '#6b7078', metalness: 0.9, roughness: 0.32 });
+  const screwGeo = new THREE.CylinderGeometry(0.005, 0.005, 0.015, 8);
+  for (const y of [-0.29, 0.29]) {
+    for (const z of [-0.29, 0.29]) {
+      const screw = new THREE.Mesh(screwGeo, screwMat);
+      screw.rotation.z = Math.PI / 2;
+      screw.position.set(-CASE_W / 2 - 0.011, y, z);
+      pcRigGroup.add(screw);
+    }
+  }
+
+  const boardMat = new THREE.MeshStandardMaterial({ color: '#18232a', roughness: 0.65, metalness: 0.15 });
+  const motherboard = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.43, 0.42), boardMat);
+  motherboard.position.set(0.145, 0.06, -0.02);
+  pcRigGroup.add(motherboard);
+  const cpu = new THREE.Mesh(new RoundedBoxGeometry(0.09, 0.115, 0.115, 2, 0.008), screwMat);
+  cpu.position.set(0.09, 0.12, -0.04);
+  pcRigGroup.add(cpu);
+  for (let fin = 0; fin < 8; fin++) {
+    const heatsink = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.003, 0.12), screwMat);
+    heatsink.position.set(0.04, 0.08 + fin * 0.012, -0.04);
+    pcRigGroup.add(heatsink);
+  }
 
   // 2. 3x Glowing RGB Front Fans (Photo 3)
   const fanGroup = new THREE.Group();
@@ -82,6 +122,17 @@ export function createPCSetup() {
   gpu.position.set(0.04, -0.08, 0.02);
   gpu.castShadow = true;
   pcRigGroup.add(gpu);
+
+  const cableMat = new THREE.MeshStandardMaterial({ color: '#15171c', roughness: 0.82 });
+  for (let cable = 0; cable < 3; cable++) {
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.08, -0.09, 0.06 + cable * 0.012),
+      new THREE.Vector3(-0.04, -0.15, 0.12 + cable * 0.012),
+      new THREE.Vector3(-0.03, -0.24, 0.03 + cable * 0.012),
+      new THREE.Vector3(0.12, -0.28, -0.1)
+    ]);
+    pcRigGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.004, 6, false), cableMat));
+  }
 
   // Glowing Red Internal Logo / RAM
   const redLedGeo = new RoundedBoxGeometry(0.012, 0.014, 0.32, 2, 0.002);

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getRoomOverview, getRoomDetailView } from '../utils/roomCamera.js';
 import gsap from 'gsap';
 import { soundEngine } from '../utils/soundEngine.js';
 import { RhythmBeatGame } from '../utils/rhythmBeatGame.js';
@@ -14,6 +15,13 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   const modalBody = document.getElementById('modal-body');
   const modalCloseBtn = document.getElementById('modal-close-btn');
   const modalCloseX = document.getElementById('modal-close-x');
+  const canvas = document.getElementById('webgl');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let modalReturnFocus = null;
+
+  function announceView(view) {
+    window.dispatchEvent(new CustomEvent('room-view-change', { detail: { view } }));
+  }
 
   // Interactive objects list
   const interactables = [];
@@ -130,10 +138,14 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   // Helper to start arcade mode (Cyber Snake)
   function startArcadeMode() {
     if (deskSetup && deskSetup.screenManager) {
+      rhythmGame.active = false;
+      showRhythmHud(false);
       if (deskSetup.screenManager.setRhythmMode) deskSetup.screenManager.setRhythmMode(false);
       deskSetup.screenManager.setArcadeMode(true);
       setCameraPreset('Desk Setup');
       showArcadeHud(true);
+      canvas.tabIndex = -1;
+      canvas.focus();
       showQuickNotification('🎮 Cyber Runner Started! Press Space to Play, Esc to Exit.');
     }
   }
@@ -143,6 +155,7 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
   function startRhythmMode() {
     if (deskSetup && deskSetup.screenManager) {
+      showArcadeHud(false);
       deskSetup.screenManager.setArcadeMode(false);
       if (deskSetup.screenManager.setRhythmMode) {
         deskSetup.screenManager.setRhythmMode(true, rhythmGame);
@@ -151,6 +164,8 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
       rhythmGame.state = 'READY';
       setCameraPreset('Desk Setup');
       showRhythmHud(true);
+      canvas.tabIndex = -1;
+      canvas.focus();
       showQuickNotification('🎵 Rhythm Beat! Press [A][S][D][F] to tap notes, Esc to exit.');
     }
   }
@@ -386,6 +401,8 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
   // Real-time physical keyboard typing listener
   window.addEventListener('keydown', (e) => {
+    if (e.code !== 'Escape' && e.target.closest('input, textarea, select, button, summary, [contenteditable="true"]')) return;
+    if (!modalBackdrop.classList.contains('hidden')) return;
     // ── Route to Rhythm Beat game ─────────────────────────────────────────
     if (rhythmGame.active) {
       if (e.code === 'Escape') {
@@ -417,9 +434,6 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
       return;
     }
 
-    // Ignore input fields if user is typing in a form
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
     let keyType = 'normal';
     if (e.code === 'Space') keyType = 'space';
     else if (e.code === 'Enter' || e.code === 'Backspace') keyType = 'enter';
@@ -437,6 +451,7 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
   // Modal helpers with DOM sanitization
   function openModal(title, htmlContent) {
+    modalReturnFocus = document.activeElement;
     modalTitle.textContent = title;
 
     // Safely parse and sanitize HTML before inserting
@@ -459,11 +474,17 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
     modalBackdrop.classList.remove('hidden');
     modalBackdrop.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => {
+      if (!modalBackdrop.classList.contains('hidden')) {
+        (modalBody.querySelector('input, textarea') || modalCloseX).focus();
+      }
+    });
   }
 
   function closeModal() {
     modalBackdrop.classList.add('hidden');
     modalBackdrop.setAttribute('aria-hidden', 'true');
+    modalReturnFocus?.focus?.();
   }
 
   // Accessibility live region announcer
@@ -488,8 +509,22 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
   // Close modal on Escape key press
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !modalBackdrop.classList.contains('hidden')) {
+    if (modalBackdrop.classList.contains('hidden')) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
       closeModal();
+    } else if (e.key === 'Tab') {
+      const focusable = [...modalBackdrop.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')]
+        .filter((element) => !element.disabled && element.tabIndex >= 0 && element.getAttribute('aria-hidden') !== 'true' && element.getClientRects().length);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
     }
   });
 
@@ -509,48 +544,53 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     pointerDownPos = { x: e.clientX, y: e.clientY };
   });
 
-  // Mouse Move Raycasting for hover tooltip
-  window.addEventListener('mousemove', (e) => {
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  function clearHover() {
+    canvas.style.cursor = '';
+    tooltip.classList.remove('visible');
+  }
 
-    tooltip.style.left = `${e.clientX}px`;
-    tooltip.style.top = `${e.clientY}px`;
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(interactables, false);
-
-    if (intersects.length > 0) {
-      const hit = intersects[0].object.userData;
-      if (hit && hit.name) {
-        document.body.style.cursor = 'pointer';
-        tooltipText.innerText = hit.name;
-        tooltip.classList.add('visible');
+  let hoverFrame = null;
+  let hoverPointer = null;
+  canvas.addEventListener('pointermove', (event) => {
+    if (event.pointerType === 'touch') return;
+    if (event.buttons) {
+      hoverPointer = null;
+      clearHover();
+      return;
+    }
+    hoverPointer = { x: event.clientX, y: event.clientY };
+    if (hoverFrame !== null) return;
+    hoverFrame = requestAnimationFrame(() => {
+      hoverFrame = null;
+      if (!hoverPointer || fpsController?.active || rcCar?.state.active || rhythmGame.active ||
+          deskSetup?.screenManager?.isArcadeMode || !modalBackdrop.classList.contains('hidden')) {
+        clearHover();
         return;
       }
-    }
-
-    document.body.style.cursor = 'default';
-    tooltip.classList.remove('visible');
+      mouse.set((hoverPointer.x / window.innerWidth) * 2 - 1, -(hoverPointer.y / window.innerHeight) * 2 + 1);
+      raycaster.setFromCamera(mouse, camera);
+      const hit = raycaster.intersectObjects(interactables, false)[0]?.object.userData;
+      if (hit?.name) {
+        tooltip.style.left = `${hoverPointer.x}px`;
+        tooltip.style.top = `${hoverPointer.y}px`;
+        canvas.style.cursor = 'pointer';
+        if (tooltipText.textContent !== hit.name) tooltipText.textContent = hit.name;
+        tooltip.classList.add('visible');
+      } else clearHover();
+    });
+  });
+  canvas.addEventListener('pointerleave', () => {
+    hoverPointer = null;
+    clearHover();
   });
 
   // Click Handler with drag delta threshold
   window.addEventListener('click', (e) => {
+    if (e.target !== canvas || !modalBackdrop.classList.contains('hidden') || fpsController?.active || rcCar?.state.active ||
+        rhythmGame.active || deskSetup?.screenManager?.isArcadeMode) return;
     // If pointer moved more than 8px between down and up, it was an orbit/pan drag, not a click
     const dragDistance = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
     if (dragDistance > 8) {
-      return;
-    }
-
-    if (
-      e.target.closest('.bottom-dock-wrapper') ||
-      e.target.closest('.top-nav-bar') ||
-      e.target.closest('.quick-bar') ||
-      e.target.closest('.lil-gui') ||
-      e.target.closest('.modal-card') ||
-      e.target.closest('.footer-credit') ||
-      e.target.closest('.radio-widget')
-    ) {
       return;
     }
 
@@ -581,7 +621,12 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   function updateRadioUI(isPlaying, channel) {
     if (!channel) channel = soundEngine.getCurrentChannel();
     if (radioPlayBtn) {
-      radioPlayBtn.innerText = isPlaying ? '⏸️' : '▶️';
+      const label = radioPlayBtn.querySelector('.radio-play-label');
+      if (label) label.textContent = isPlaying ? 'Pause' : 'Play';
+      else radioPlayBtn.textContent = isPlaying ? 'Pause' : 'Play';
+      radioPlayBtn.classList.toggle('playing', isPlaying);
+      radioPlayBtn.setAttribute('aria-label', isPlaying ? 'Pause music' : 'Play music');
+      radioPlayBtn.setAttribute('aria-pressed', String(isPlaying));
       radioPlayBtn.setAttribute('title', isPlaying ? 'Pause Lo-Fi Radio' : 'Play Lo-Fi Radio');
     }
     if (radioChannelName) radioChannelName.innerText = channel.name;
@@ -613,8 +658,11 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   btnSoundMute?.addEventListener('click', () => {
     const muted = soundEngine.toggleMute();
     soundEngine.playSwitchClick();
-    const iconSpan = btnSoundMute.querySelector('.btn-icon') || btnSoundMute;
-    iconSpan.innerText = muted ? '🔇' : '🔊';
+    btnSoundMute.classList.toggle('muted', muted);
+    btnSoundMute.setAttribute('aria-pressed', String(muted));
+    btnSoundMute.setAttribute('aria-label', muted ? 'Unmute sound' : 'Mute sound');
+    const label = btnSoundMute.querySelector('.btn-text');
+    if (label) label.textContent = muted ? 'Muted' : 'Sound';
     btnSoundMute.setAttribute('title', muted ? 'Unmute Sound' : 'Mute Sound');
     showQuickNotification(muted ? '🔇 Sound Muted' : '🔊 Sound Enabled');
   });
@@ -625,11 +673,15 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     soundEngine.playSwitchClick();
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
-      btnFullscreen.setAttribute('title', 'Exit Fullscreen');
     } else {
       document.exitFullscreen().catch(() => {});
-      btnFullscreen.setAttribute('title', 'Enter Fullscreen');
     }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    const active = Boolean(document.fullscreenElement);
+    btnFullscreen?.setAttribute('aria-pressed', String(active));
+    btnFullscreen?.setAttribute('title', active ? 'Exit fullscreen' : 'Enter fullscreen');
+    btnFullscreen?.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
   });
 
   // Settings GUI Toggle
@@ -639,6 +691,8 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
     const guiRoot = document.querySelector('.lil-gui.root');
     if (guiRoot) {
       guiRoot.classList.toggle('gui-hidden');
+      btnSettingsGui.setAttribute('aria-expanded', String(!guiRoot.classList.contains('gui-hidden')));
+      if (!guiRoot.classList.contains('gui-hidden')) guiRoot.querySelector('input, select')?.focus();
     }
   });
 
@@ -668,26 +722,33 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
   });
 
   function resetCameraView() {
+    announceView('Isometric');
+    const cutawayWindow = scene.getObjectByName('ZebraBlindsWindow');
+    if (cutawayWindow) cutawayWindow.visible = true;
+    const overview = getRoomOverview(camera.aspect);
     gsap.to(camera.position, {
-      x: 7.8,
-      y: 6.8,
-      z: 7.8,
-      duration: 1.5,
+      ...overview.position,
+      duration: reducedMotion ? 0 : 1.5,
       ease: 'power2.inOut',
+      overwrite: 'auto',
       onUpdate: () => controls.update()
     });
     gsap.to(controls.target, {
-      x: 0,
-      y: 1.2,
-      z: 0,
-      duration: 1.5,
-      ease: 'power2.inOut'
+      ...overview.target,
+      duration: reducedMotion ? 0 : 1.5,
+      ease: 'power2.inOut',
+      overwrite: 'auto'
     });
   }
 
   // Camera presets
-  function setCameraPreset(viewName) {
-    soundEngine.playSwitchClick();
+  function setCameraPreset(viewName, { silent = false } = {}) {
+    if (!silent) soundEngine.playSwitchClick();
+    if (rcCar?.state.active) rcCar.setActive(false);
+    if (viewName !== 'Desk Setup') stopScreenGames();
+    const cutawayWindow = scene.getObjectByName('ZebraBlindsWindow');
+    // The window on the removed front wall would occlude the desk from a portrait camera.
+    if (cutawayWindow) cutawayWindow.visible = viewName !== 'Desk Setup';
 
     if (fpsController && fpsController.active && viewName !== 'First Person') {
       fpsController.disable();
@@ -695,7 +756,12 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
     if (viewName === 'First Person') {
       if (fpsController) {
+        gsap.killTweensOf(camera.position);
+        gsap.killTweensOf(controls.target);
+        canvas.tabIndex = -1;
+        canvas.focus();
         fpsController.enable();
+        announceView(viewName);
         showQuickNotification('🚶 Click to look around. WASD to walk, Shift to sprint, Esc to exit.');
       }
       return;
@@ -703,16 +769,47 @@ export function setupInteractions(scene, camera, controls, lighting, furniture, 
 
     if (viewName === 'Isometric') {
       resetCameraView();
-    } else if (viewName === 'Desk Setup') {
-      gsap.to(camera.position, { x: 0.6, y: 2.1, z: -0.6, duration: 1.4, ease: 'power2.inOut' });
-      gsap.to(controls.target, { x: -0.2, y: 1.4, z: -2.6, duration: 1.4, ease: 'power2.inOut' });
-    } else if (viewName === 'Bed Corner') {
-      gsap.to(camera.position, { x: 1.4, y: 2.5, z: 3.8, duration: 1.4, ease: 'power2.inOut' });
-      gsap.to(controls.target, { x: -1.0, y: 0.8, z: 1.8, duration: 1.4, ease: 'power2.inOut' });
+    } else if (viewName === 'Desk Setup' || viewName === 'Bed Corner') {
+      announceView(viewName);
+      const view = getRoomDetailView(viewName, camera.aspect);
+      gsap.to(camera.position, { ...view.position, duration: reducedMotion ? 0 : 1.4, ease: 'power2.inOut', overwrite: 'auto' });
+      gsap.to(controls.target, { ...view.target, duration: reducedMotion ? 0 : 1.4, ease: 'power2.inOut', overwrite: 'auto' });
     } else if (viewName === 'Top Down') {
+      announceView(viewName);
       gsap.to(camera.position, { x: 0.1, y: 10.5, z: 0.1, duration: 1.4, ease: 'power2.inOut' });
       gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 1.4, ease: 'power2.inOut' });
     }
+  }
+
+  window.addEventListener('fps-mode-change', ({ detail }) => {
+    if (!detail.active) resetCameraView();
+    else stopScreenGames();
+  });
+  window.addEventListener('rc-mode-change', ({ detail }) => {
+    if (!detail.active) resetCameraView();
+    else {
+      if (fpsController?.active) fpsController.disable();
+      stopScreenGames();
+      canvas.tabIndex = -1;
+      canvas.focus();
+    }
+  });
+  window.addEventListener('room-customizer-change', ({ detail }) => {
+    if (!detail.open) return;
+    if (rcCar?.state.active) rcCar.setActive(false);
+    if (fpsController?.active) fpsController.disable();
+    if (rhythmGame.active || deskSetup?.screenManager?.isArcadeMode) {
+      stopScreenGames();
+      resetCameraView();
+    }
+  });
+
+  function stopScreenGames() {
+    rhythmGame.active = false;
+    deskSetup?.screenManager?.setRhythmMode?.(false);
+    deskSetup?.screenManager?.setArcadeMode?.(false);
+    showArcadeHud(false);
+    showRhythmHud(false);
   }
 
   return { setCameraPreset, resetCameraView, updateRadioUI, startRhythmMode };

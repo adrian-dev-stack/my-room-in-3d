@@ -2,211 +2,93 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <meta name="description" content="An interactive 3D isometric room with Rhythm Beat game, RC rover, FPS walkthrough, and dynamic neon lighting." />
-    <meta property="og:title" content="My Room in 3D — FiveM Player" />
-    <meta property="og:description" content="An interactive 3D isometric room inspired by Bruno Simon, featuring Rhythm Beat, RC rover, procedural audio, and dynamic neon lighting." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="FiveM Player's room in 3D. Explore the setup, change the lighting, and make the space your own." />
+    <meta property="og:title" content="My Room in 3D | FiveM Player" />
+    <meta property="og:description" content="Explore FiveM Player's personal 3D room, with custom furniture, lighting, and interactive games." />
     <meta property="og:image" content="/social/share-1200x630.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <title>My Room in 3D — FiveM Player</title>
+    <meta name="theme-color" content="#0c1017" />
+    <title>My Room in 3D | FiveM Player</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Outfit:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <!-- Accessibility Live Announcer -->
     <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-
-    <!-- ── Loading Splash Screen ── -->
-    <div id="loading-splash" role="status" aria-label="Loading 3D Room">
-      <div class="splash-logo">
-        <span class="splash-glyph">🌌</span>
-        <span class="splash-title">MY ROOM IN 3D</span>
-        <span class="splash-sub">FiveM Player · v2.0</span>
-      </div>
-      <div class="splash-bar-track">
-        <div class="splash-bar-fill"></div>
-      </div>
+    <div id="loading-splash" role="status" aria-label="Loading your 3D room">
+      <div class="splash-logo"><span class="splash-sub">FiveM Player</span><span class="splash-title">Getting the room ready.</span></div>
+      <div class="splash-bar-track" aria-hidden="true"><div class="splash-bar-fill"></div></div>
     </div>
+    <canvas id="webgl" class="webgl" aria-label="Interactive 3D room. Drag to orbit, scroll to zoom, and click an object to interact."></canvas>
+    <div id="stats-container" class="stats-hud" aria-hidden="true"></div>
 
-    <!-- ── 3D WebGL Canvas ── -->
-    <canvas id="webgl" class="webgl" aria-label="3D Interactive Room Canvas"></canvas>
-
-    <!-- ── Top-Left Performance Stats ── -->
-    <div id="stats-container" class="stats-hud"></div>
-
-    <!-- ── Top Navigation Aurora Island ── -->
-    <header class="top-nav-bar" aria-label="Room Controls">
-      <div class="brand-badge">
-        <span class="live-dot" aria-hidden="true"></span>
-        <div class="brand-text">
-          <span class="brand-title">3D WORKSPACE</span>
-          <span class="brand-sub">FiveM Player</span>
-        </div>
-      </div>
-
-      <div class="top-actions" role="toolbar" aria-label="Quick Actions">
-        <button class="nav-action-btn highlight-action" id="btn-rc-drive" title="Drive RC Cyber Rover (WASD)" aria-label="Drive RC Cyber Rover">
-          <span class="btn-icon" aria-hidden="true">🏎️</span>
-          <span class="btn-tooltip">Drive RC</span>
+    <header class="top-nav-bar" aria-label="Room controls">
+      <div class="brand-badge"><span class="brand-title">My room<span class="brand-period">.</span></span><span class="brand-sub">FiveM Player</span></div>
+      <div class="top-actions" role="group" aria-label="Room actions">
+        <button class="nav-action-btn sound-action" id="btn-sound-mute" title="Mute sound" aria-label="Mute sound" aria-pressed="false">
+          <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path class="sound-waves" d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="sound-mute-mark" d="m16 9 5 6m0-6-5 6"/></svg></span><span class="btn-text">Sound</span>
         </button>
-
-        <button class="nav-action-btn highlight-action" id="btn-rhythm" title="Play Rhythm Beat Game" aria-label="Play Rhythm Beat Game">
-          <span class="btn-icon" aria-hidden="true">🎵</span>
-          <span class="btn-tooltip">Rhythm Beat</span>
+        <button class="nav-action-btn customize-action" id="btn-customizer" title="Customize your room" aria-label="Customize your room" aria-expanded="false" aria-controls="customizer-drawer">
+          <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><rect x="7" y="4" width="4" height="6" rx="1"/><rect x="14" y="14" width="4" height="6" rx="1"/></svg></span><span class="btn-text">Customize</span>
         </button>
-
-        <button class="nav-action-btn" id="btn-sound-mute" title="Toggle Sound (Mute/Unmute)" aria-label="Toggle Sound">
-          <span class="btn-icon" aria-hidden="true">🔊</span>
-          <span class="btn-tooltip">Sound</span>
-        </button>
-
-        <button class="nav-action-btn" id="btn-fullscreen" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
-          <span class="btn-icon" aria-hidden="true">⛶</span>
-          <span class="btn-tooltip">Fullscreen</span>
-        </button>
-
-        <button class="nav-action-btn" id="btn-settings-gui" title="Toggle Settings Panel" aria-label="Toggle Settings Panel">
-          <span class="btn-icon" aria-hidden="true">⚙️</span>
-          <span class="btn-tooltip">Settings</span>
-        </button>
-
-        <button class="nav-action-btn highlight-action" id="btn-customizer" title="Customize Room" aria-label="Customize Room">
-          <span class="btn-icon" aria-hidden="true">🎨</span>
-          <span class="btn-tooltip">Customize</span>
-        </button>
+        <details class="more-controls" id="more-controls">
+          <summary class="nav-action-btn" aria-label="More room controls"><span>More</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg></summary>
+          <div class="more-panel">
+            <div class="quality-row"><label for="render-quality">Quality</label><select id="render-quality" aria-describedby="performance-label"><option value="auto">Auto</option><option value="smooth">Smooth</option><option value="high">High</option></select></div>
+            <output id="performance-label" class="performance-label" aria-live="off">Auto quality</output>
+            <section class="radio-section" id="radio-widget" aria-label="Lo-fi radio">
+              <div class="radio-main-info">
+                <div class="radio-meta"><span class="radio-badge">Lo-fi radio</span><span class="radio-title" id="radio-channel-name">Lo-Fi Chill Beats</span></div>
+                <span class="radio-icon" id="radio-channel-icon" aria-hidden="true" hidden></span>
+                <div class="equalizer-bars" id="radio-equalizer" aria-hidden="true"><span class="bar bar-1"></span><span class="bar bar-2"></span><span class="bar bar-3"></span><span class="bar bar-4"></span></div>
+              </div>
+              <div class="radio-dock-controls">
+                <button class="dock-btn-icon radio-play" id="radio-play-btn" title="Play lo-fi radio" aria-label="Play lo-fi radio" aria-pressed="false"><span class="radio-play-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path class="play-shape" d="m8 5 11 7-11 7V5Z"/><path class="pause-shape" d="M8 5v14M16 5v14"/></svg></span><span class="radio-play-label">Play</span></button>
+                <button class="dock-btn-icon" id="radio-next-btn" title="Next station" aria-label="Next station"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7L5 19V5ZM19 5v14"/></svg></button>
+              </div>
+              <label class="dock-volume-slider" for="radio-volume"><span>Volume</span><input type="range" id="radio-volume" min="0" max="1" step="0.05" value="0.7" class="radio-volume-input" /></label>
+            </section>
+            <div class="menu-section">
+              <span class="menu-section-label">Play in the room</span>
+              <button class="menu-action" id="btn-rc-drive" title="Drive the RC rover with WASD"><span>Drive the RC rover</span><span class="menu-key">WASD</span></button>
+              <button class="menu-action" id="btn-rhythm" title="Play Rhythm Beat"><span>Rhythm Beat</span><span class="menu-key">ASDF</span></button>
+            </div>
+            <div class="menu-section menu-tools">
+              <button class="menu-action" id="btn-fullscreen" title="Enter fullscreen"><span>Fullscreen</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
+              <button class="menu-action" id="btn-settings-gui" title="Open advanced settings" aria-expanded="false"><span>Advanced settings</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1"/><circle cx="12" cy="12" r="5"/></svg></button>
+            </div>
+          </div>
+        </details>
       </div>
     </header>
 
-    <!-- ── Floating Bottom Control Dock ── -->
-    <nav class="bottom-dock-wrapper" aria-label="Room Controls Dock">
-      <div class="bottom-dock">
-        <!-- Atmosphere Presets -->
-        <div class="dock-section" role="group" aria-label="Atmosphere Lighting Presets">
-          <span class="dock-section-title">Atmosphere</span>
-          <div class="dock-pill-group">
-            <button class="preset-pill active" data-preset="Cyberpunk Night" aria-label="Cyberpunk Night">
-              <span class="pill-icon" aria-hidden="true">🌌</span>
-              <span class="pill-label">Cyberpunk</span>
-            </button>
-            <button class="preset-pill" data-preset="Sunset Studio" aria-label="Sunset Studio">
-              <span class="pill-icon" aria-hidden="true">🌆</span>
-              <span class="pill-label">Sunset</span>
-            </button>
-            <button class="preset-pill" data-preset="Clean Daylight" aria-label="Clean Daylight">
-              <span class="pill-icon" aria-hidden="true">☀️</span>
-              <span class="pill-label">Daylight</span>
-            </button>
-            <button class="preset-pill" data-preset="Cozy Lo-Fi" aria-label="Cozy Lo-Fi">
-              <span class="pill-icon" aria-hidden="true">🕯️</span>
-              <span class="pill-label">Cozy</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="dock-divider" aria-hidden="true"></div>
-
-        <!-- Camera Views -->
-        <div class="dock-section" role="group" aria-label="Camera Angle Presets">
-          <span class="dock-section-title">Camera</span>
-          <div class="dock-pill-group">
-            <button class="cam-pill active" data-cam="Isometric" aria-label="Isometric Room View">
-              <span class="pill-icon" aria-hidden="true">📐</span>
-              <span class="pill-label">Room</span>
-            </button>
-            <button class="cam-pill" data-cam="Desk Setup" aria-label="Desk Camera View">
-              <span class="pill-icon" aria-hidden="true">🖥️</span>
-              <span class="pill-label">Desk</span>
-            </button>
-            <button class="cam-pill" data-cam="Bed Corner" aria-label="Bed Camera View">
-              <span class="pill-icon" aria-hidden="true">🛏️</span>
-              <span class="pill-label">Bed</span>
-            </button>
-            <button class="cam-pill" data-cam="First Person" aria-label="First Person Walkthrough">
-              <span class="pill-icon" aria-hidden="true">🚶</span>
-              <span class="pill-label">Walk</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="dock-divider" aria-hidden="true"></div>
-
-        <!-- Lo-Fi Radio Player -->
-        <div class="dock-section dock-radio-section" id="radio-widget" role="region" aria-label="Lo-Fi Radio Player">
-          <div class="radio-main-info">
-            <span class="radio-icon" id="radio-channel-icon" aria-hidden="true">☕</span>
-            <div class="radio-meta">
-              <span class="radio-badge">Lo-Fi Radio</span>
-              <span class="radio-title" id="radio-channel-name">Lo-Fi Chill Beats</span>
-            </div>
-            <div class="equalizer-bars" id="radio-equalizer" aria-hidden="true">
-              <span class="bar bar-1"></span>
-              <span class="bar bar-2"></span>
-              <span class="bar bar-3"></span>
-              <span class="bar bar-4"></span>
-            </div>
-          </div>
-          <div class="radio-dock-controls">
-            <button class="dock-btn-icon" id="radio-play-btn" title="Play / Pause" aria-label="Play or Pause Music">▶️</button>
-            <button class="dock-btn-icon" id="radio-next-btn" title="Next Station" aria-label="Next Station">⏭️</button>
-            <div class="dock-volume-slider">
-              <span class="vol-icon" aria-hidden="true">🔉</span>
-              <input
-                type="range"
-                id="radio-volume"
-                min="0" max="1" step="0.05" value="0.7"
-                class="radio-volume-input"
-                title="Volume"
-                aria-label="Volume Slider"
-              />
-            </div>
-          </div>
-        </div>
+    <div class="scene-caption" aria-label="Current room view"><span class="scene-caption-index">01 / The space</span><h1 id="scene-view-label">Room view</h1><span id="scene-mood-label" class="scene-mood-label">Night</span></div>
+    <aside class="atmosphere-panel" aria-label="Lighting controls">
+      <div class="panel-heading"><h2>Set the mood</h2><span>Lighting</span></div>
+      <div class="atmosphere-options" role="group" aria-label="Lighting presets">
+        <button class="preset-pill active" data-preset="Cyberpunk Night" aria-label="Cyberpunk Night" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14A8.5 8.5 0 0 1 10 4a8.5 8.5 0 1 0 10 10Z"/></svg><span class="pill-label">Night</span></button>
+        <button class="preset-pill" data-preset="Sunset Studio" aria-label="Sunset Studio" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h18M6 14a6 6 0 0 1 12 0M12 3v3M4 7l2 2m14-2-2 2M5 21h14"/></svg><span class="pill-label">Sunset</span></button>
+        <button class="preset-pill" data-preset="Clean Daylight" aria-label="Clean Daylight" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg><span class="pill-label">Daylight</span></button>
+        <button class="preset-pill" data-preset="Cozy Lo-Fi" aria-label="Cozy Lo-Fi" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l3 10H5L8 3Zm4 10v7m-4 1h8"/></svg><span class="pill-label">Cozy</span></button>
       </div>
-    </nav>
+      <p class="panel-note">A different light. The same room.</p>
+    </aside>
 
-    <!-- ── Bottom Left Key Hints ── -->
-    <div class="key-hints-badge" aria-label="Navigation Controls Guide">
-      <div class="hint-item"><span class="key-tag">Drag</span> Orbit</div>
-      <div class="hint-item"><span class="key-tag">Right Drag</span> Pan</div>
-      <div class="hint-item"><span class="key-tag">Scroll</span> Zoom</div>
-      <div class="hint-item highlight"><span class="key-tag">Click</span> ✦ Interact</div>
-      <div class="hint-item highlight"><span class="key-tag">Type</span> ⌨️ SFX</div>
-    </div>
+    <nav class="bottom-dock-wrapper" aria-label="Camera views"><div class="bottom-dock"><span class="dock-section-title">View</span><div class="dock-pill-group" role="group" aria-label="Camera presets">
+      <button class="cam-pill active" data-cam="Isometric" aria-label="Room view" aria-pressed="true">Room</button>
+      <button class="cam-pill" data-cam="Desk Setup" aria-label="Desk view" aria-pressed="false">Desk</button>
+      <button class="cam-pill" data-cam="Bed Corner" aria-label="Bed view" aria-pressed="false">Bed</button>
+      <button class="cam-pill walk-pill" data-cam="First Person" aria-label="First person walkthrough" aria-pressed="false">Walk<span class="walk-arrow" aria-hidden="true">↗</span></button>
+    </div></div></nav>
+    <div class="key-hints-badge" aria-label="Navigation controls"><span class="hint-item"><span class="key-tag">Drag</span> to rotate</span><span class="hint-item"><span class="key-tag">Scroll</span> to zoom</span><span class="hint-item">Click objects to interact</span></div>
+    <div class="footer-credit">Your space, in 3D.</div>
+    <div id="tooltip" class="interactive-tooltip" aria-hidden="true"><span class="tooltip-dot" aria-hidden="true"></span><span id="tooltip-text">Click to interact</span></div>
 
-    <!-- ── Interactive Hover Tooltip ── -->
-    <div id="tooltip" class="interactive-tooltip" aria-hidden="true">
-      <span class="tooltip-dot"></span>
-      <span id="tooltip-text">Click to interact</span>
-    </div>
-
-    <!-- ── Terminal / Info Modal ── -->
     <div id="modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
-      <div class="modal-card">
-        <div class="modal-header">
-          <div class="window-dots">
-            <span class="dot dot-red" id="modal-close-btn" role="button" tabindex="0" title="Close" aria-label="Close modal"></span>
-            <span class="dot dot-yellow" aria-hidden="true"></span>
-            <span class="dot dot-green" aria-hidden="true"></span>
-          </div>
-          <div class="modal-title" id="modal-title">Workstation Terminal</div>
-          <button class="modal-close" id="modal-close-x" aria-label="Close modal">&times;</button>
-        </div>
-        <div class="modal-body" id="modal-body"></div>
-      </div>
+      <div class="modal-card"><div class="modal-header"><span class="modal-title" id="modal-title">Workstation</span><button class="modal-close" id="modal-close-x" aria-label="Close dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><button id="modal-close-btn" class="sr-only" tabindex="-1" aria-hidden="true">Close</button></div><div class="modal-body" id="modal-body"></div></div>
     </div>
-
-    <!-- ── Bottom Right Credits ── -->
-    <div class="footer-credit">
-      <span>Built with Three.js + ♥ by <strong>FiveM Player</strong></span>
-      <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="source-link">(GitHub)</a>
-    </div>
-
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
