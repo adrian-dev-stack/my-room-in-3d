@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
-import { RoomCustomizer, FLOOR_STYLES, WALL_COLORS, NEON_COLORS } from '../src/components/RoomCustomizer.js';
+import { RoomCustomizer, FLOOR_STYLES, WALL_COLORS } from '../src/components/RoomCustomizer.js';
 
 describe('RoomCustomizer Component & Material Sandbox', () => {
   it('can apply model finishes without constructing the browser drawer', () => {
@@ -17,16 +17,15 @@ describe('RoomCustomizer Component & Material Sandbox', () => {
       expect(createDrawer).not.toHaveBeenCalled();
       expect(mockRoom.floorMaterial.color.getHexString()).toBe('1c130d');
       expect(mockRoom.wallMaterial.color.getHexString()).toBe('1e2530');
-      expect(customizer.settings.neonText).toBe('FIVEM PLAYER');
+      expect(customizer.settings).toEqual({ floor: 'walnut', wall: 'slate' });
     } finally {
       createDrawer.mockRestore();
     }
   });
 
-  it('should define available presets for floors, walls, and neon colors', () => {
+  it('should define available presets for floors and walls', () => {
     expect(Object.keys(FLOOR_STYLES).length).toBeGreaterThanOrEqual(4);
     expect(Object.keys(WALL_COLORS).length).toBeGreaterThanOrEqual(5);
-    expect(Object.keys(NEON_COLORS).length).toBeGreaterThanOrEqual(5);
   });
 
   it('should apply floor material changes to room', () => {
@@ -59,13 +58,5 @@ describe('RoomCustomizer Component & Material Sandbox', () => {
     expect(mockRoom.wallMaterial.color.getHexString()).toBe(
       new THREE.Color(WALL_COLORS.tokyo.color).getHexString()
     );
-  });
-
-  it('should sanitize and cap custom neon sign text', () => {
-    const mockRoom = { group: new THREE.Group() };
-    const customizer = new RoomCustomizer(mockRoom, null);
-
-    customizer.setNeonText('ThisIsAVeryLongSloganThatShouldBeCapped');
-    expect(customizer.settings.neonText.length).toBeLessThanOrEqual(20);
   });
 });

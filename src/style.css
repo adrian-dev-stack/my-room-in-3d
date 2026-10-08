@@ -185,13 +185,6 @@ body.debug .stats-hud { display: block; position: fixed; top: 92px; left: 24px; 
 .custom-tile.active::after { content: ''; position: absolute; top: 5px; right: 5px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .tile-swatch { width: 18px; height: 18px; flex-shrink: 0; border-radius: 3px; border: 1px solid #ffffff66; }
 .tile-name { font-size: .75rem; line-height: 1.4; }
-.custom-input { width: 100%; min-height: 46px; padding: 10px 12px; color: var(--text-primary); background: var(--bg-dark); border: 1px solid var(--control-border); border-radius: var(--radius-sm); font-size: 1rem; }
-.custom-input::placeholder { color: var(--text-muted); }
-.neon-color-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
-.neon-color-btn { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; }
-.neon-color-btn:hover { background: var(--surface-hover); }
-.neon-color-btn.active { border-color: var(--accent); background: var(--accent-tint); }
-.neon-swatch { width: 19px; height: 19px; border-radius: 50%; border: 1px solid #ffffff66; }
 
 .lil-gui { --background-color: var(--surface) !important; --text-color: var(--text-primary) !important; --title-background-color: var(--surface-raised) !important; --widget-color: var(--surface-hover) !important; --hover-color: var(--border) !important; --focus-color: var(--accent) !important; --number-color: var(--accent) !important; --string-color: var(--accent) !important; font-family: var(--font-sans) !important; font-size: .8125rem !important; border: 1px solid var(--border) !important; border-radius: var(--radius-md) !important; box-shadow: var(--panel-shadow) !important; }
 .lil-gui.root { top: 104px !important; right: 28px !important; max-width: calc(100vw - 28px) !important; max-height: calc(100dvh - 130px) !important; z-index: 94 !important; }
@@ -300,5 +293,5 @@ body.debug .stats-hud { display: block; position: fixed; top: 92px; left: 24px; 
 }
 
 @media (forced-colors: active) {
-  .cam-pill.active, .preset-pill.active, .custom-tile.active, .neon-color-btn.active { outline: 2px solid Highlight; outline-offset: -3px; }
+  .cam-pill.active, .preset-pill.active, .custom-tile.active { outline: 2px solid Highlight; outline-offset: -3px; }
 }

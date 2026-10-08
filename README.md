@@ -20,7 +20,7 @@ npm run build
 
 The export includes the floor and cutaway walls, window blinds, desk and both
 monitors, keyboard, mouse, headset, speakers, PC and clock, bed and pillows,
-cabinet, shelves, sofa, chair, standing fan, and the default neon sign. It uses
+cabinet, shelves, sofa, chair, and standing fan. It uses
 the website's default walnut floor and slate walls. Browser-saved customizer
 choices are not read by the exporter.
 
@@ -28,7 +28,7 @@ The GLB contains its textures and retains separate named groups for editing.
 Displays and fan blades are static snapshots. Website games, the RC car, pet,
 particles, audio, weather, camera controls, and postprocessing remain website
 features. Room dimensions are the website's authored units, not a measured
-survey of your physical room. Screen and sign typography uses fonts installed
+survey of your physical room. Screen typography uses fonts installed
 on the computer running the exporter.
 
 The room uses physically based wood, woven fabric, and painted-wall materials
